@@ -1,0 +1,7 @@
+{
+  "$schema": "./schemas/balance.schema.json",
+  "jump": {
+    "startingRangeLy": 12,
+    "maxRangeLy": 30
+  }
+}

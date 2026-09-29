@@ -1,0 +1,7 @@
+raw/
+data/
+node_modules/
+dist/
+pipeline/
+package-lock.json
+TRANSIT_BUILD_SPEC.md
