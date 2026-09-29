@@ -10,6 +10,8 @@ export interface MapView {
   revealed: ReadonlySet<number>;
   visited: ReadonlySet<number>;
   reachable: ReadonlySet<number>;
+  /** Reachable stars in list order; drawn with their 1-based number. */
+  numbered: readonly number[];
   route: readonly number[];
   position: number;
   frontX: number;
@@ -62,6 +64,8 @@ function glowTexture(): Texture {
   return Texture.from(c);
 }
 
+export const DEFAULT_CAMERA: Camera = { yaw: -0.3, pitch: 1.1, zoom: 6, panX: 0, panY: 0 };
+
 interface Projected {
   x: number;
   y: number;
@@ -74,7 +78,7 @@ export class SectorRenderer {
   private sector: Sector | null = null;
   private colors: number[] = [];
   private view: MapView | null = null;
-  private cam: Camera = { yaw: -0.6, pitch: 1.0, zoom: 5, panX: 0, panY: 0 };
+  private cam: Camera = { ...DEFAULT_CAMERA };
   private proj: Projected[] = [];
   private planeG = new Graphics();
   private dropG = new Graphics();
@@ -163,7 +167,13 @@ export class SectorRenderer {
   /** Center the view on a star (sector-frame x/y). */
   focus(index: number): void {
     const p = this.sector?.stars[index]?.pos;
-    if (p) this.setCamera({ panX: p[0], panY: p[1] });
+    // Look a little ahead, toward the goal (+x), so the next jumps are centered.
+    if (p) this.setCamera({ panX: p[0] + 25, panY: p[1] });
+  }
+
+  resetView(index: number): void {
+    this.cam = { ...DEFAULT_CAMERA };
+    this.focus(index);
   }
 
   invalidate(): void {
@@ -231,7 +241,7 @@ export class SectorRenderer {
     // Reference plane (z = 0): a faint grid along the corridor.
     const plane = this.planeG;
     plane.clear();
-    const step = 20;
+    const step = 40;
     for (let x = Math.ceil(xMin / step) * step; x <= xMax; x += step) {
       const a = this.project(x, -radius, 0);
       const b = this.project(x, radius, 0);
@@ -242,7 +252,7 @@ export class SectorRenderer {
       const b = this.project(xMax, y, 0);
       plane.moveTo(a.x, a.y).lineTo(b.x, b.y);
     }
-    plane.stroke({ width: 1, color: palette.grid, alpha: 0.5 });
+    plane.stroke({ width: 1, color: palette.grid, alpha: 0.35 });
 
     // Drop lines from each revealed star to the plane, for depth.
     const drop = this.dropG;
@@ -284,29 +294,17 @@ export class SectorRenderer {
     const o = this.overlayG;
     o.clear();
 
-    // The front: a translucent plane across the corridor, with a fainter wake behind it.
-    const frontQuad = (x: number) => [
-      this.project(x, -radius, -radius),
-      this.project(x, radius, -radius),
-      this.project(x, radius, radius),
-      this.project(x, -radius, radius),
-    ];
-    const band = 24;
-    for (let k = 3; k >= 0; k--) {
-      const x = view.frontX - (k * band) / 3;
-      if (x < xMin - band) continue;
-      o.poly(frontQuad(x).flatMap((p) => [p.x, p.y])).fill({
-        color: palette.front,
-        alpha: 0.03 + (3 - k) * 0.015,
-      });
-    }
-    o.poly(frontQuad(view.frontX).flatMap((p) => [p.x, p.y])).stroke({
-      width: 1,
-      color: palette.front,
-      alpha: 0.6,
-    });
-    const fl = this.project(view.frontX, -radius, radius);
-    this.label('front', 'FRONT', fl.x + 4, fl.y - 14, palette.front, 0.8);
+    // The front: one faint translucent plane across the corridor, outlined.
+    const front = [
+      this.project(view.frontX, -radius, -radius),
+      this.project(view.frontX, radius, -radius),
+      this.project(view.frontX, radius, radius),
+      this.project(view.frontX, -radius, radius),
+    ].flatMap((p) => [p.x, p.y]);
+    o.poly(front).fill({ color: palette.front, alpha: 0.06 });
+    o.poly(front).stroke({ width: 1, color: palette.front, alpha: 0.5 });
+    const fl = this.project(view.frontX, 0, 0);
+    this.label('front', 'FRONT', fl.x + 6, fl.y - 6, palette.front, 0.85);
 
     // Route travelled so far.
     if (view.route.length > 1) {
@@ -334,8 +332,12 @@ export class SectorRenderer {
     // Reachable stars.
     for (const i of view.reachable) {
       const p = this.proj[i] as Projected;
-      o.circle(p.x, p.y, 6).stroke({ width: 1, color: palette.reach, alpha: 0.8 });
+      o.circle(p.x, p.y, 7).stroke({ width: 1, color: palette.reach, alpha: 0.9 });
     }
+    view.numbered.slice(0, 9).forEach((i, k) => {
+      const p = this.proj[i] as Projected;
+      this.label(`n${k}`, String(k + 1), p.x + 8, p.y - 16, palette.reach, 1);
+    });
     // Resource caches from decoded signals.
     for (const i of view.caches) {
       const p = this.proj[i] as Projected;
@@ -372,38 +374,74 @@ export class SectorRenderer {
       .closePath();
     o.stroke({ width: 1.5, color: palette.goal, alpha: 0.95 });
     const goalStar = stars[goalIdx];
-    if (goalStar)
+    const W = this.app.screen.width;
+    const H = this.app.screen.height;
+    if (goalStar && g.x >= 0 && g.x <= W && g.y >= 0 && g.y <= H) {
       this.label('goal', `GOAL · ${shortLabel(goalStar)}`, g.x + 14, g.y - 6, palette.goal);
+    } else if (goalStar) {
+      // Off screen: an arrow at the edge pointing toward the goal.
+      const dx = g.x - W / 2;
+      const dy = g.y - H / 2;
+      const [ax, ay] = this.edgePoint(dx, dy);
+      const ang = Math.atan2(dy, dx);
+      const at = (r: number, da: number): [number, number] => [
+        ax + r * Math.cos(ang + da),
+        ay + r * Math.sin(ang + da),
+      ];
+      const [x1, y1] = at(12, 0);
+      const [x2, y2] = at(10, 2.5);
+      const [x3, y3] = at(10, -2.5);
+      o.moveTo(x1, y1).lineTo(x2, y2).lineTo(x3, y3).closePath();
+      o.fill({ color: palette.goal, alpha: 0.9 });
+      const text = `GOAL · ${shortLabel(goalStar)}`;
+      const w = text.length * 7.2;
+      const lx = Math.max(8, Math.min(W - w - 8, dx > 0 ? ax - w - 16 : ax + 16));
+      const ly = Math.max(8, Math.min(H - 24, ay - 6));
+      this.label('goal', text, lx, ly, palette.goal);
+    }
 
-    // The Sun: a marker at the view's edge in its true direction, with its distance.
+    // The Sun: always at the view's edge, in its true projected direction, with its distance.
     const sd = sector.sunDirection;
     const origin = this.project(0, 0, 0);
     const far = this.project(sd[0] * 1000, sd[1] * 1000, sd[2] * 1000);
-    const dx = far.x - origin.x;
-    const dy = far.y - origin.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const w = this.app.screen.width;
-    const h = this.app.screen.height;
-    const reach = Math.min(w, h) * 0.44;
-    const sx = w / 2 + (dx / len) * reach;
-    const sy = h / 2 + (dy / len) * reach;
-    o.circle(sx, sy, 4).stroke({ width: 1, color: palette.sol, alpha: 0.8 });
-    o.moveTo(sx - (dx / len) * 10, sy - (dy / len) * 10)
-      .lineTo(sx - (dx / len) * 22, sy - (dy / len) * 22)
+    const sdx = far.x - origin.x;
+    const sdy = far.y - origin.y;
+    const [sx, sy] = this.edgePoint(sdx, sdy);
+    const slen = Math.hypot(sdx, sdy) || 1;
+    o.circle(sx, sy, 4).stroke({ width: 1, color: palette.sol, alpha: 0.9 });
+    o.moveTo(sx - (sdx / slen) * 9, sy - (sdy / slen) * 9)
+      .lineTo(sx - (sdx / slen) * 24, sy - (sdy / slen) * 24)
       .stroke({ width: 1, color: palette.sol, alpha: 0.5 });
     const solText = `Sol, ${Math.round(sector.sunDistanceLy).toLocaleString('en-US')} ly`;
+    const sw = solText.length * 7.2;
+    const W2 = this.app.screen.width;
     this.label(
       'sol',
       solText,
-      sx + (dx < 0 ? 8 : -8 - solText.length * 7.2),
-      sy + 6,
+      Math.max(8, Math.min(W2 - sw - 8, sx - sw / 2)),
+      sy > this.app.screen.height / 2 ? sy - 22 : sy + 10,
       palette.sol,
-      0.85,
+      0.9,
     );
 
     // Current star label.
     const cur = stars[view.position];
-    if (cur) this.label('here', shortLabel(cur), here.x + 10, here.y + 8, palette.ship, 0.9);
+    if (cur) this.label('here', shortLabel(cur), here.x - 30, here.y + 14, palette.ship, 0.9);
+  }
+
+  /** Where a ray from the view center in direction (dx, dy) meets the view's inset edge. */
+  private edgePoint(dx: number, dy: number): [number, number] {
+    const W = this.app.screen.width;
+    const H = this.app.screen.height;
+    const cx = W / 2;
+    const cy = H / 2;
+    const mx = 36;
+    const top = 68; // keep clear of the corridor strip
+    const bottom = 36;
+    const tx = (dx >= 0 ? W - mx - cx : cx - mx) / Math.max(Math.abs(dx), 1e-9);
+    const ty = (dy >= 0 ? H - bottom - cy : cy - top) / Math.max(Math.abs(dy), 1e-9);
+    const t = Math.min(tx, ty);
+    return [cx + dx * t, cy + dy * t];
   }
 
   // ---------------------------------------------------------------- input

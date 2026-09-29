@@ -1,6 +1,6 @@
-import { jumpTargets } from '@transit/core';
 import { useEffect, useMemo, useRef } from 'react';
 import type { Session } from '../game/session';
+import { orderedJumps } from '../ui/jumps';
 import { useUi } from '../ui/ui';
 import { SectorRenderer, type MapView as View } from './renderer';
 
@@ -11,16 +11,15 @@ export function MapView({ session }: { session: Session }) {
   const selected = useUi((u) => u.selected);
   const { state, ctx, route } = session;
 
-  const reachable = useMemo(
-    () => new Set(jumpTargets(state, ctx).map((t) => t.index)),
-    [state, ctx],
-  );
+  const numbered = useMemo(() => orderedJumps(state, ctx).map((j) => j.target), [state, ctx]);
+  const reachable = useMemo(() => new Set(numbered), [numbered]);
 
   const view: View = useMemo(
     () => ({
       revealed: new Set(state.revealed),
       visited: new Set(state.visited),
       reachable,
+      numbered,
       route,
       position: state.position,
       frontX: state.frontX,
@@ -30,7 +29,7 @@ export function MapView({ session }: { session: Session }) {
       hovered,
       caches: new Set(Object.keys(state.caches).map(Number)),
     }),
-    [state, ctx, reachable, route, selected, hovered],
+    [state, ctx, reachable, numbered, route, selected, hovered],
   );
 
   // Latest values for the renderer's long-lived callbacks.
@@ -75,9 +74,31 @@ export function MapView({ session }: { session: Session }) {
 
   return (
     <div className="map" ref={host}>
-      <div className="map-help">
-        drag rotate · wheel zoom · shift-drag pan · click a ringed star to plot a jump
+      <div className="map-legend" aria-label="Map legend">
+        <span>
+          <i className="lg-ship">△</i> you
+        </span>
+        <span>
+          <i className="lg-reach">○</i> in jump range (numbered)
+        </span>
+        <span>
+          <i className="lg-goal">◇</i> goal
+        </span>
+        <span>
+          <i className="lg-front">▮</i> the front
+        </span>
+        <span>
+          <i className="lg-dim">·</i> beyond sensors
+        </span>
+        <button
+          className="link"
+          onClick={() => renderer.current?.resetView(state.position)}
+          title="Reset rotation and zoom"
+        >
+          recenter
+        </button>
       </div>
+      <div className="map-help">drag rotate · wheel zoom · shift-drag pan</div>
     </div>
   );
 }

@@ -3,8 +3,6 @@ import {
   frontDistance,
   goalDistance,
   hopsToGoal,
-  jumpPreview,
-  jumpTargets,
   landedWorld,
   legalActions,
   mineYield,
@@ -19,9 +17,11 @@ import {
   type World,
 } from '@transit/core';
 import { useEffect, useMemo, useState } from 'react';
-import { dispatch, endSession, currentSave, type Session } from '../game/session';
 import { downloadJson } from '../game/persistence';
+import { currentSave, dispatch, endSession, type Session } from '../game/session';
 import { MapView } from '../map/MapView';
+import { advise } from './advice';
+import { orderedJumps, type NumberedJump } from './jumps';
 import { compactIds, shortLabel } from './labels';
 import { useUi } from './ui';
 
@@ -44,6 +44,17 @@ function isLegal(legal: Action[], a: Action): boolean {
   return legal.some((l) => JSON.stringify(l) === JSON.stringify(a));
 }
 
+/** "Gaia …123 IV" -> "IV"; keeps real planet names like "Kepler-452 b". */
+function worldShortName(w: World, star: SectorStar): string {
+  const base = starLabel(star);
+  return w.origin === 'procedural' && w.name.startsWith(base)
+    ? w.name
+        .slice(base.length)
+        .replace(/ belt$/, '')
+        .trim()
+    : compactIds(w.name);
+}
+
 // ---------------------------------------------------------------- HUD
 
 function Meter({
@@ -51,17 +62,19 @@ function Meter({
   value,
   max,
   warn,
+  testId,
 }: {
   label: string;
   value: number;
   max?: number;
   warn?: number;
+  testId: string;
 }) {
   const low = warn !== undefined && value <= warn;
   return (
     <div className={`meter${low ? ' low' : ''}`}>
       <span className="meter-label">{label}</span>
-      <span className="meter-value" data-testid={`hud-${label.toLowerCase().replace(/\s/g, '-')}`}>
+      <span className="meter-value" data-testid={testId}>
         {fmt(value, value % 1 ? 1 : 0)}
         {max !== undefined && <span className="dim">/{max}</span>}
       </span>
@@ -77,33 +90,82 @@ function Meter({
 function Hud({ session }: { session: Session }) {
   const { state, ctx } = session;
   const max = ctx.content.balance.ship.max;
-  const front = frontDistance(state, ctx);
-  const goal = goalDistance(ctx, state.position);
-  const hops = hopsToGoal(ctx.sector, state.jumpRangeLy)[state.position] ?? -1;
   return (
     <header className="hud">
-      <Meter label="Fuel" value={state.ship.fuel} max={max.fuel} warn={6} />
-      <Meter label="Life support" value={state.ship.lifeSupport} max={max.lifeSupport} warn={6} />
-      <Meter label="Hull" value={state.ship.hull} max={max.hull} warn={30} />
-      <Meter label="Materials" value={state.ship.materials} max={max.materials} />
-      <Meter label="Data" value={state.ship.data} />
+      <Meter label="Fuel" testId="hud-fuel" value={state.ship.fuel} max={max.fuel} warn={6} />
+      <Meter
+        label="Life support"
+        testId="hud-life-support"
+        value={state.ship.lifeSupport}
+        max={max.lifeSupport}
+        warn={6}
+      />
+      <Meter label="Hull" testId="hud-hull" value={state.ship.hull} max={max.hull} warn={30} />
+      <Meter
+        label="Materials"
+        testId="hud-materials"
+        value={state.ship.materials}
+        max={max.materials}
+      />
+      <Meter label="Data" testId="hud-data" value={state.ship.data} />
       <div className="meter">
         <span className="meter-label">Turn</span>
         <span className="meter-value" data-testid="turn">
           {state.turn}
         </span>
       </div>
-      <div className={`meter${front < ctx.content.balance.front.warnDistanceLy ? ' low' : ''}`}>
-        <span className="meter-label">Front</span>
-        <span className="meter-value">{front < 0 ? 'on you' : `${fmt(front)} ly`}</span>
-      </div>
-      <div className="meter">
-        <span className="meter-label">Goal</span>
-        <span className="meter-value">
-          {fmt(goal)} ly{hops >= 0 && <span className="dim"> · ≥{hops} jumps</span>}
+    </header>
+  );
+}
+
+// ---------------------------------------------------------------- corridor strip
+
+/** The whole crossing on one line: start, you, the front, the goal. */
+function CorridorStrip({ session }: { session: Session }) {
+  const { state, ctx } = session;
+  const stars = ctx.sector.stars;
+  const xs = stars.map((s) => s.pos[0]);
+  const min = Math.min(...xs, state.frontX);
+  const max = Math.max(...xs);
+  const at = (x: number) => `${((x - min) / (max - min)) * 100}%`;
+  const shipX = stars[state.position]?.pos[0] ?? 0;
+  const goalX = stars[ctx.sector.goal.starIndex]?.pos[0] ?? max;
+  const startX = stars[ctx.sector.start.starIndex]?.pos[0] ?? min;
+  const front = frontDistance(state, ctx);
+  const goalLy = goalDistance(ctx, state.position);
+  const hops = hopsToGoal(ctx.sector, state.jumpRangeLy)[state.position] ?? -1;
+  const goal = stars[ctx.sector.goal.starIndex] as SectorStar;
+  const warnFront = front < ctx.content.balance.front.warnDistanceLy;
+  return (
+    <div className="corridor" aria-label="Progress through the corridor">
+      <div className="corridor-track">
+        <div className="corridor-behind" style={{ width: at(state.frontX) }} />
+        <div
+          className="corridor-done"
+          style={{ left: at(startX), width: `calc(${at(shipX)} - ${at(startX)})` }}
+        />
+        <span
+          className="corridor-mark front"
+          style={{ left: at(state.frontX) }}
+          title="The front"
+        />
+        <span className="corridor-mark ship" style={{ left: at(shipX) }} title="You">
+          △
+        </span>
+        <span className="corridor-mark goal" style={{ left: at(goalX) }} title={starLabel(goal)}>
+          ◇
         </span>
       </div>
-    </header>
+      <div className="corridor-text">
+        <span className={warnFront ? 'warn' : 'dim'}>
+          front {front < 0 ? 'is on you' : `${fmt(front)} ly behind`}
+        </span>
+        <span>
+          goal <span className="goal-name">{shortLabel(goal)}</span> · {fmt(goalLy)} ly
+          {hops >= 0 && ` · at least ${hops} jumps`}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -131,7 +193,7 @@ function StarCard({ session }: { session: Session }) {
       </div>
       {star.name && <div className="dim">{star.id}</div>}
       <div>
-        {revealed ? `Class ${cls}` : 'Unresolved'}
+        {revealed ? `Class ${cls}` : 'Beyond sensor range'}
         {star.teff != null && revealed && ` · ${fmt(star.teff)} K`}
         {sys && ` · ${sys.worlds.length} worlds`}
       </div>
@@ -143,11 +205,11 @@ function StarCard({ session }: { session: Session }) {
       )}
       {confirmed.length > 0 && (
         <div className="real-list">
-          Confirmed: {confirmed.map((p) => p.name ?? p.koi).join(', ')}
+          Confirmed planets: {confirmed.map((p) => p.name ?? p.koi).join(', ')}
         </div>
       )}
       {star.flags.koi && confirmed.length === 0 && (
-        <div className="real-list">Kepler candidate host</div>
+        <div className="real-list">Kepler planet candidate host</div>
       )}
       {star.flags.keplerTarget && !star.flags.koi && (
         <div className="dim">Watched by Kepler, 2009–2013</div>
@@ -156,15 +218,136 @@ function StarCard({ session }: { session: Session }) {
   );
 }
 
-// ---------------------------------------------------------------- right panel
+// ---------------------------------------------------------------- side panel
+
+function AdviceBar({ session, jumps }: { session: Session; jumps: NumberedJump[] }) {
+  const a = advise(session.state, session.ctx, jumps);
+  return (
+    <div className={`advice advice-${a.tone}`} data-testid="advice">
+      {a.text}
+    </div>
+  );
+}
+
+function JumpPanel({
+  session,
+  legal,
+  jumps,
+}: {
+  session: Session;
+  legal: Action[];
+  jumps: NumberedJump[];
+}) {
+  const { ctx } = session;
+  const selected = useUi((u) => u.selected);
+  const select = useUi((u) => u.select);
+  const preview = jumps.find((j) => j.target === selected) ?? null;
+  return (
+    <section className="panel jumps">
+      <h2>Jump</h2>
+      <ul className="targets" data-testid="jump-targets">
+        {jumps.map((j) => {
+          const star = ctx.sector.stars[j.target] as SectorStar;
+          return (
+            <li key={j.target}>
+              <button
+                className={`target${selected === j.target ? ' selected' : ''}`}
+                onClick={() => select(selected === j.target ? null : j.target)}
+                disabled={!j.affordable}
+                title={starLabel(star)}
+              >
+                <span className="target-n">{j.n <= 9 ? j.n : ''}</span>
+                <span className="toward">{j.toward ? '▲' : ''}</span>
+                <span className="target-name">
+                  {shortLabel(star)}
+                  {star.flags.host && <span className="badge real">host</span>}
+                </span>
+                <span className="target-cost">
+                  {fmt(j.distanceLy, 1)} ly · <b>{fmt(j.fuel, 1)}</b> fuel
+                  {j.hazard.kind !== 'none' && <span className="warn"> · {j.hazard.kind}</span>}
+                </span>
+              </button>
+              {preview?.target === j.target && (
+                <div className="preview" data-testid="jump-preview">
+                  <div>
+                    Costs {fmt(preview.fuel, 1)} fuel and {fmt(preview.lifeSupport, 1)} life
+                    support.
+                  </div>
+                  <div className="small">
+                    {preview.progressLy >= 0
+                      ? `${fmt(preview.progressLy, 1)} ly closer to the goal`
+                      : `${fmt(-preview.progressLy, 1)} ly farther from the goal`}
+                    {preview.visited && ' · visited before'}
+                  </div>
+                  <div className="small">
+                    Known hazards:{' '}
+                    {preview.hazard.kind === 'none' ? (
+                      <span className="dim">none</span>
+                    ) : (
+                      <span className="warn">
+                        {preview.hazard.kind === 'flare' ? 'flaring star' : 'radiation'}{' '}
+                        {pct(preview.hazard.chance)} per turn spent there
+                      </span>
+                    )}
+                    {preview.behindFront && (
+                      <span className="warn"> · the front will be on it</span>
+                    )}
+                  </div>
+                  <div className="preview-actions">
+                    <button
+                      className="primary"
+                      data-testid="confirm-jump"
+                      disabled={!isLegal(legal, { type: 'jump', target: preview.target })}
+                      onClick={() => {
+                        dispatch({ type: 'jump', target: preview.target });
+                        select(null);
+                      }}
+                    >
+                      {preview.affordable ? 'Jump ⏎' : 'Not enough fuel'}
+                    </button>
+                    <button onClick={() => select(null)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+        {jumps.length === 0 && <li className="warn small">No stars within jump range.</li>}
+      </ul>
+      <div className="dim small hint">Keys 1–9 pick a jump, Enter jumps, Esc cancels.</div>
+    </section>
+  );
+}
+
+function ResourceChips({ w }: { w: World }) {
+  if (!w.surveyed) return <span className="dim">unsurveyed</span>;
+  const chips = [
+    ['fuel', w.resources.fuel],
+    ['materials', w.resources.materials],
+    ['life support', w.resources.lifeSupport],
+  ] as const;
+  const shown = chips.filter(([, v]) => v > 0);
+  if (shown.length === 0) return <span className="dim">nothing useful</span>;
+  return (
+    <>
+      {shown.map(([k, v]) => (
+        <span key={k} className={`chip chip-${k.replace(' ', '-')}`}>
+          {v} {k}
+        </span>
+      ))}
+    </>
+  );
+}
 
 function WorldRow({
   w,
+  star,
   state,
   session,
   legal,
 }: {
   w: World;
+  star: SectorStar;
   state: GameState;
   session: Session;
   legal: Action[];
@@ -174,58 +357,61 @@ function WorldRow({
   const risk = w.landingRisk + (w.surveyed ? 0 : b.landing.unsurveyedRiskBonus);
   const y = mineYield(state, session.ctx, w);
   const canMineNow = isLegal(legal, { type: 'mine', worldId: w.id });
+  const gain = [
+    y.fuel && `${y.fuel} fuel`,
+    y.materials && `${y.materials} mat`,
+    y.lifeSupport && `${y.lifeSupport} LS`,
+  ]
+    .filter(Boolean)
+    .join(', ');
   return (
     <li className={`world${landedHere ? ' landed' : ''}`}>
-      <div className="world-head">
-        <span className="world-name">{compactIds(w.name)}</span>
+      <div className="world-line">
+        <span className="world-name" title={compactIds(w.name)}>
+          {worldShortName(w, star)}
+        </span>
+        <span className="world-type">{TYPE_LABEL[w.type]}</span>
+        {w.temperate && <span className="badge temperate">temperate</span>}
         {w.origin !== 'procedural' && (
-          <span className="badge real">
-            {w.origin === 'confirmed' ? 'Kepler confirmed' : 'Kepler candidate'}
-          </span>
+          <span className="badge real">{w.origin === 'confirmed' ? 'Kepler' : 'KOI'}</span>
         )}
+        <span className="world-actions">
+          {!w.surveyed && (
+            <button
+              onClick={() => dispatch({ type: 'survey', worldId: w.id })}
+              title="Free, no turn"
+            >
+              Survey
+            </button>
+          )}
+          {w.landable && !landedHere && (
+            <button
+              disabled={!isLegal(legal, { type: 'land', worldId: w.id })}
+              onClick={() => dispatch({ type: 'land', worldId: w.id })}
+              title={`${b.lifeSupport.perLanding} life support, takes a turn, ${pct(risk)} risk of hull damage`}
+            >
+              Land <span className={risk > 0.2 ? 'warn' : 'dim'}>{pct(risk)}</span>
+            </button>
+          )}
+          {(landedHere || !w.landable) && (canMineNow || w.surveyed) && (
+            <button
+              disabled={!canMineNow}
+              onClick={() => dispatch({ type: 'mine', worldId: w.id })}
+              title="Takes a turn"
+            >
+              {w.landable ? 'Mine' : 'Skim'}
+              {canMineNow && gain && <span className="good"> +{gain}</span>}
+            </button>
+          )}
+        </span>
       </div>
-      <div className="dim small">
-        {TYPE_LABEL[w.type]} · {fmt(w.smaAu, w.smaAu < 1 ? 2 : 1)} AU · {fmt(w.teqK)} K
-        {w.radiusEarth > 0 && ` · ${fmt(w.radiusEarth, 1)} R⊕`}
-        {w.transiting === false && ' · non-transiting'}
-      </div>
-      <div className="small">
-        {w.surveyed ? (
-          <>
-            fuel {w.resources.fuel} · materials {w.resources.materials} · life support{' '}
-            {w.resources.lifeSupport}
-          </>
-        ) : (
-          <span className="dim">resources unknown, survey to reveal</span>
-        )}
-        {w.landable && (
-          <span className={risk > 0.2 ? 'warn' : 'dim'}> · landing risk {pct(risk)}</span>
-        )}
-      </div>
-      <div className="world-actions">
-        {!w.surveyed && (
-          <button onClick={() => dispatch({ type: 'survey', worldId: w.id })}>Survey</button>
-        )}
-        {w.landable && !landedHere && (
-          <button
-            disabled={!isLegal(legal, { type: 'land', worldId: w.id })}
-            onClick={() => dispatch({ type: 'land', worldId: w.id })}
-            title={`${b.lifeSupport.perLanding} life support, takes a turn`}
-          >
-            Land
-          </button>
-        )}
-        {(landedHere || !w.landable) && (
-          <button
-            disabled={!canMineNow}
-            onClick={() => dispatch({ type: 'mine', worldId: w.id })}
-            title="Takes a turn"
-          >
-            {w.landable ? 'Mine' : 'Skim'}
-            {canMineNow &&
-              ` +${[y.fuel && `${y.fuel}f`, y.materials && `${y.materials}m`, y.lifeSupport && `${y.lifeSupport}ls`].filter(Boolean).join(' ')}`}
-          </button>
-        )}
+      <div className="world-detail">
+        <ResourceChips w={w} />
+        <span className="dim">
+          {' '}
+          · {fmt(w.smaAu, w.smaAu < 1 ? 2 : 1)} AU · {fmt(w.teqK)} K
+          {w.radiusEarth > 0 && ` · ${fmt(w.radiusEarth, 1)} R⊕`}
+        </span>
       </div>
     </li>
   );
@@ -241,142 +427,55 @@ function SystemPanel({ session, legal }: { session: Session; legal: Action[] }) 
   return (
     <section className="panel system">
       <h2 title={star.id}>
-        {shortLabel(star)}
+        Here: {shortLabel(star)}
         {(star.flags.host || star.flags.landmark) && <span className="badge real">Real data</span>}
       </h2>
       {sys && (
         <div className="dim small">
-          Class {sys.starClass} · {fmt(sys.teffK)} K ·{' '}
-          {fmt(sys.luminositySun, sys.luminositySun < 1 ? 3 : 1)} L☉
+          Class {sys.starClass} star · {fmt(sys.teffK)} K
           {sys.hazard.kind !== 'none' && (
             <span className="warn">
               {' '}
-              · {sys.hazard.kind} risk {pct(sys.hazard.chance)}
+              · {sys.hazard.kind === 'flare' ? 'flares' : 'radiation'}: {pct(sys.hazard.chance)} per
+              turn here
             </span>
           )}
         </div>
       )}
       {sys?.koiResolutions.map((r) => (
         <div key={r.koi} className="small real-list">
-          {r.koi}: {r.result === 'eclipsingBinary' ? 'eclipsing binary' : 'instrument artifact'},
-          not a planet
+          {r.koi} was{' '}
+          {r.result === 'eclipsingBinary' ? 'an eclipsing binary' : 'an instrument artifact'}, not a
+          planet.
         </div>
       ))}
       <ul className="worlds">
         {sys?.worlds.map((w) => (
-          <WorldRow key={w.id} w={w} state={state} session={session} legal={legal} />
+          <WorldRow key={w.id} w={w} star={star} state={state} session={session} legal={legal} />
         ))}
         {sys && sys.worlds.length === 0 && <li className="dim">No worlds. A bare star.</li>}
       </ul>
+      {landed && <div className="small">Landed on {worldShortName(landed, star)}.</div>}
       <div className="system-actions">
         <button
           onClick={() => dispatch({ type: 'stay' })}
           disabled={!isLegal(legal, { type: 'stay' })}
-          title="Work the system another turn: yield grows each turn you stay, and so does the risk."
+          title="Spend a turn here. The yield grows each turn you stay, and so does the risk."
         >
-          Stay{state.stayStreak > 0 && ` ×${state.stayStreak + 1}`}{' '}
+          Stay a turn{state.stayStreak > 0 && ` (×${state.stayStreak + 1})`}{' '}
           <span className="dim">risk {pct(nextHazard)}</span>
         </button>
         <button
           onClick={() => dispatch({ type: 'repair' })}
           disabled={!isLegal(legal, { type: 'repair' })}
-          title={`${b.repair.materialsPerAction} materials → +${b.repair.hullPerAction} hull, takes a turn`}
+          title={`Spend ${b.repair.materialsPerAction} materials and a turn for +${b.repair.hullPerAction} hull`}
         >
-          Repair <span className="dim">−{b.repair.materialsPerAction}m</span>
+          Repair{' '}
+          <span className="dim">
+            {b.repair.materialsPerAction} mat → +{b.repair.hullPerAction} hull
+          </span>
         </button>
       </div>
-      {landed && <div className="small dim">Landed on {compactIds(landed.name)}.</div>}
-    </section>
-  );
-}
-
-function JumpPanel({ session, legal }: { session: Session; legal: Action[] }) {
-  const { state, ctx } = session;
-  const selected = useUi((u) => u.selected);
-  const select = useUi((u) => u.select);
-  const hops = hopsToGoal(ctx.sector, state.jumpRangeLy);
-  const here = hops[state.position] ?? -1;
-  const targets = useMemo(
-    () =>
-      jumpTargets(state, ctx)
-        .map((t) => jumpPreview(state, ctx, t.index))
-        .filter((p): p is NonNullable<typeof p> => p !== null)
-        .sort((a, b) => b.progressLy - a.progressLy),
-    [state, ctx],
-  );
-  const preview = selected != null ? jumpPreview(state, ctx, selected) : null;
-  return (
-    <section className="panel jumps">
-      <h2>Jump plotting</h2>
-      {preview ? (
-        <div className="preview" data-testid="jump-preview">
-          <div className="preview-title">
-            {starLabel(ctx.sector.stars[preview.target] as SectorStar)}
-          </div>
-          <div>
-            {fmt(preview.distanceLy, 1)} ly · fuel {fmt(preview.fuel, 1)} · life support{' '}
-            {fmt(preview.lifeSupport, 1)}
-          </div>
-          <div className="small">
-            {preview.progressLy >= 0
-              ? `${fmt(preview.progressLy, 1)} ly closer to goal`
-              : `${fmt(-preview.progressLy, 1)} ly farther from goal`}
-            {preview.visited && ' · visited'}
-          </div>
-          <div className="small">
-            Known hazards:{' '}
-            {preview.hazard.kind === 'none' ? (
-              <span className="dim">none</span>
-            ) : (
-              <span className="warn">
-                {preview.hazard.kind} {pct(preview.hazard.chance)}
-              </span>
-            )}
-            {preview.behindFront && <span className="warn"> · the front will be on it</span>}
-          </div>
-          <div className="preview-actions">
-            <button
-              className="primary"
-              data-testid="confirm-jump"
-              disabled={!isLegal(legal, { type: 'jump', target: preview.target })}
-              onClick={() => {
-                dispatch({ type: 'jump', target: preview.target });
-                select(null);
-              }}
-            >
-              {preview.affordable ? 'Confirm jump' : 'Not enough fuel'}
-            </button>
-            <button onClick={() => select(null)}>Cancel</button>
-          </div>
-        </div>
-      ) : (
-        <div className="dim small">Click a ringed star on the map, or pick one below.</div>
-      )}
-      <ul className="targets" data-testid="jump-targets">
-        {targets.map((t) => {
-          const star = ctx.sector.stars[t.target] as SectorStar;
-          const h = hops[t.target] ?? -1;
-          return (
-            <li key={t.target}>
-              <button
-                className={`target${selected === t.target ? ' selected' : ''}`}
-                onClick={() => select(t.target)}
-                disabled={!t.affordable}
-              >
-                <span className="target-name">
-                  <span className="toward">{here >= 0 && h >= 0 && h < here ? '▲' : ' '}</span>
-                  {shortLabel(star)}
-                  {star.flags.host && <span className="badge real">host</span>}
-                </span>
-                <span className="dim">
-                  {fmt(t.distanceLy, 1)} ly · {fmt(t.fuel, 1)} fuel
-                </span>
-              </button>
-            </li>
-          );
-        })}
-        {targets.length === 0 && <li className="warn small">No stars within jump range.</li>}
-      </ul>
     </section>
   );
 }
@@ -390,7 +489,9 @@ function Ticker({ session }: { session: Session }) {
       <span className="ticker-label">Next up</span>
       {items.map((it, i) => (
         <span key={i} className={`tick ${it.kind === 'front' ? 'tick-front' : ''}`}>
-          <span className="tick-turns">{it.turns === 0 ? 'now' : `${it.turns}t`}</span>{' '}
+          <span className="tick-turns">
+            {it.turns === 0 ? 'now' : `in ${it.turns} turn${it.turns === 1 ? '' : 's'}`}
+          </span>{' '}
           {compactIds(it.label)}
           {it.detail && <span className="dim"> · {it.detail}</span>}
         </span>
@@ -400,7 +501,7 @@ function Ticker({ session }: { session: Session }) {
 }
 
 function Log({ state }: { state: GameState }) {
-  const entries = state.log.slice(-14).reverse();
+  const entries = state.log.slice(-8).reverse();
   return (
     <section className="log" aria-label="Log">
       {entries.map((e, i) => (
@@ -494,7 +595,7 @@ function EndScreen({ session }: { session: Session }) {
             {hops >= 0 &&
               `${fmt(goalDistance(ctx, state.position))} ly (${hops} jumps) from ${starLabel(goal)}`}
             {nearestClock &&
-              `; ${nearestClock.label} was ${nearestClock.turnsRemaining} turn${nearestClock.turnsRemaining === 1 ? '' : 's'} from paying off`}
+              `; ${compactIds(nearestClock.label)} was ${nearestClock.turnsRemaining} turn${nearestClock.turnsRemaining === 1 ? '' : 's'} from paying off`}
             .
           </p>
         )}
@@ -516,21 +617,43 @@ function EndScreen({ session }: { session: Session }) {
 export function GameScreen({ session }: { session: Session }) {
   const { state, ctx } = session;
   const legal = useMemo(() => legalActions(state, ctx), [state, ctx]);
+  const jumps = useMemo(() => orderedJumps(state, ctx), [state, ctx]);
   const [menu, setMenu] = useState(false);
   const select = useUi((u) => u.select);
   useEffect(() => select(null), [state.position, select]);
-  const goal = ctx.sector.stars[ctx.sector.goal.starIndex] as SectorStar;
+
+  // Keyboard: 1–9 pick a numbered jump, Enter jumps, Esc cancels.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (state.pendingEvent || state.status.kind !== 'active') return;
+      if (e.target instanceof HTMLInputElement) return;
+      const ui = useUi.getState();
+      if (/^[1-9]$/.test(e.key)) {
+        const j = jumps[Number(e.key) - 1];
+        if (j) ui.select(j.target);
+      } else if (e.key === 'Enter' && ui.selected != null) {
+        const a: Action = { type: 'jump', target: ui.selected };
+        if (isLegal(legal, a)) {
+          dispatch(a);
+          ui.select(null);
+        }
+      } else if (e.key === 'Escape') {
+        ui.select(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [jumps, legal, state.pendingEvent, state.status.kind]);
+
   return (
     <div className="game">
       <Hud session={session} />
       <div className="game-body">
         <div className="map-wrap">
           <MapView session={session} />
+          <CorridorStrip session={session} />
           <StarCard session={session} />
-          <div className="map-title">
-            {ctx.sector.id} ·{' '}
-            {shortLabel(ctx.sector.stars[ctx.sector.start.starIndex] as SectorStar)} →{' '}
-            {shortLabel(goal)} · {fmt(ctx.sector.sunDistanceLy)} ly from Sol
+          <div className="map-menu">
             <button className="link" onClick={() => setMenu(!menu)}>
               menu
             </button>
@@ -553,8 +676,9 @@ export function GameScreen({ session }: { session: Session }) {
           </div>
         </div>
         <aside className="side">
+          <AdviceBar session={session} jumps={jumps} />
+          <JumpPanel session={session} legal={legal} jumps={jumps} />
           <SystemPanel session={session} legal={legal} />
-          <JumpPanel session={session} legal={legal} />
         </aside>
       </div>
       <footer className="bottom">

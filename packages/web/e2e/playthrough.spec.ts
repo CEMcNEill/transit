@@ -41,10 +41,10 @@ async function playOne(page: Page): Promise<string> {
     // Survey first (free); refuel when low; otherwise jump toward the goal.
     if (await clickFirst(page, /^Survey$/)) continue;
     if ((await fuel(page)) < 12) {
-      if (await clickFirst(page, /^(Skim|Mine) \+.*\d+f/)) continue;
+      if (await clickFirst(page, /^(Skim|Mine) \+.*\d+ fuel/)) continue;
       const fuelWorld = page
-        .locator('.world', { hasText: /fuel [1-9]/ })
-        .getByRole('button', { name: /^Land$/, disabled: false });
+        .locator('.world', { hasText: /[1-9]\d* fuel/ })
+        .getByRole('button', { name: /^Land/, disabled: false });
       if (await fuelWorld.count()) {
         await fuelWorld.first().click();
         continue;
