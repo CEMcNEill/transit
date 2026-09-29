@@ -79,5 +79,5 @@ reports), make it reachable the same way and add or refresh its Glance entry.
   reads so Vite accepts the proxied hostname. Don't hard-code the tailnet hostname in this public
   repo.
 - Glance config is `~/.config/glance/glance.yml` (the "Transit (dev)" tile under Creative & media,
-  plus a Restart button). The restart allowlist is in `~/.local/share/glance/restarter.py`. Back
+  plus a "Transit lab" tile for `#lab` and a Restart button). The restart allowlist is in `~/.local/share/glance/restarter.py`. Back
   up either file before editing it (`*.bak-<date>-<topic>`). Glance hot-reloads its config.

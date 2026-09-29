@@ -1,5 +1,5 @@
 # Transit — top-level tasks. See README.md.
-.PHONY: setup data test test-js test-py lint sim dev build e2e clean-data
+.PHONY: setup data test test-js test-py lint sim dev build e2e playthrough clean-data
 
 UV := uv --project pipeline
 
@@ -37,8 +37,16 @@ dev:
 build:
 	npm run build
 
+# Playwright smoke test (needs `make data`). Installs Chromium on first run (~170 MB).
 e2e:
-	@echo "make e2e: Playwright smoke test arrives in Milestone 3" >&2; exit 2
+	cd packages/web && npx playwright install chromium
+	npm run e2e -w @transit/web
+
+# Plays 3 full runs through the UI and exports telemetry to packages/web/test-results/.
+playthrough:
+	cd packages/web && npx playwright install chromium
+	npm run playthrough -w @transit/web
+	npm run telemetry-report -w @transit/web -- test-results/telemetry.json
 
 # Removes baked output only. Never touches raw/.
 clean-data:

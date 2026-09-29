@@ -2,7 +2,7 @@
 
 import type { Action } from './actions.ts';
 import { findEvent, optionViews, type OptionView } from './events/engine.ts';
-import type { World } from './generate/system.ts';
+import { starClass, type World } from './generate/system.ts';
 import { canMine, jumpCost, jumpTargets, mineYield, systemAt, type Ctx } from './reducer.ts';
 import type { Sector } from './sector.ts';
 import type { GameState } from './state.ts';
@@ -54,16 +54,15 @@ export function jumpPreview(s: GameState, ctx: Ctx, target: number): JumpPreview
   if (!t || !star || !here) return null;
   const cost = jumpCost(ctx.content, t.distance);
   const b = ctx.content.balance;
-  const sys = systemAt(s, target);
-  const cls = sys?.starClass;
-  const hz = cls ? b.stars.hazard[cls] : null;
+  // The star's spectrum is in the catalog, so its class hazard is known before arrival.
+  const hz = b.stars.hazard[starClass(star, b)];
   return {
     target,
     distanceLy: t.distance,
     fuel: cost.fuel,
     lifeSupport: cost.lifeSupport + b.lifeSupport.perTurn,
     affordable: cost.fuel <= s.ship.fuel,
-    hazard: hz ? { kind: hz.kind, chance: hz.chance } : { kind: 'unknown', chance: 0 },
+    hazard: { kind: hz.kind, chance: hz.chance },
     behindFront: star.pos[0] < s.frontX + b.front.speedLyPerTurn,
     visited: s.visited.includes(target),
     progressLy: goalDistance(ctx, s.position) - goalDistance(ctx, target),

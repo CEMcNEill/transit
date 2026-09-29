@@ -360,3 +360,91 @@ Against the targets:
 10. **Code style:** TypeScript imports use `.ts` extensions and `erasableSyntaxOnly`, so Node 22
     runs the sim and content scripts directly with no extra tooling. The base lib is raised to
     ES2023.
+
+## Milestone 3 — Playable prototype (done 2026-09-29)
+
+A full run is playable start to finish in the browser. `make dev` serves it locally, and it's on
+the tailnet via `transit-dev.service` (see CLAUDE.md), with Glance tiles for the game and the Lab.
+
+### What's in it
+
+- **Sector map (PixiJS 8):**
+  - An orthographic 3D view of the real star positions. Drag to rotate, wheel to zoom,
+    shift-drag or right-drag to pan. It redraws only on change.
+  - Stars are glow sprites tinted by spectral class, brighter for lower Gaia G. Stars beyond
+    sensor range stay dim grey, so the horizon grows as you move.
+  - Thin drop lines run to a z = 0 reference grid.
+  - Overlays: jump-range and sensor-range rings, ringed reachable stars, the route travelled,
+    the front as a translucent plane with a fading wake, a goal diamond with its label, and
+    square markers for decoded caches.
+  - A Sol marker at the view edge in its true direction, labeled like "Sol, 1,688 ly".
+- **Star card on hover:** name and catalog ID, class and Teff, distance from here, distance from
+  Sol with "the light Earth sees left it N years ago", a Real data badge for hosts, landmarks and
+  confirmed planets, and a note for Kepler targets.
+- **Jump preview:** fuel and life-support cost, progress toward the goal, known hazards (star
+  class is known from the catalog before arrival), and a warning if the front will be on the
+  target. Then confirm. A sortable jump list mirrors the map (▲ marks jumps on a shortest path).
+- **System panel:** star class, Teff, luminosity and hazard, plus KOI resolutions. Each world
+  shows type, orbit, Teq and radius, a "Kepler confirmed/candidate" badge, "non-transiting" on
+  generated worlds around Kepler targets, resources after survey, and landing risk. Actions:
+  survey, land, mine or skim (showing the yield), stay (showing the next hazard %), repair.
+- **Event dialog:** text, options with costs and shown odds; unaffordable options are disabled.
+- **HUD:** fuel, life support, hull, materials, data, turn, distance to the front, distance to
+  the goal and minimum jumps.
+- **Next-up ticker:** the next three clock payoffs, including the front's ETA.
+- **Log:** color-coded, with a `real` badge on lines that come from real data.
+- **Run end screen:** cause, stats (turns, jumps, ly, systems, data, KOIs resolved and
+  confirmed, firsts), a "what you almost did" line (distance and jumps to the goal, plus the
+  nearest unfinished clock), New run, and Export run.
+- **Saves:** every action autosaves to IndexedDB. Reload continues the run. The in-game menu
+  exports and abandons; the title screen imports a save.
+- **Telemetry:** `track(event, props)` appends to IndexedDB, with `setTelemetrySink()` as the
+  PostHog seam. It records run_start/resume/end/abandon, turn_start, turn_end (with
+  durationMs), each action, and quit_point on pagehide or tab hide. "export telemetry" on the
+  title screen downloads it; `scripts/telemetry-report.ts` summarizes an export.
+- **Lab (`#lab`):** the sector table and the latest sim summary.
+
+### Tests
+
+- `npm run typecheck` and `npm run build` pass (JS bundle 482 kB, 150 kB gzipped; `dist` is
+  21 MB because it includes the sector data).
+- `make e2e` (Playwright smoke) passes: start s01 with seed `smoke`, pick a jump, confirm,
+  answer any arrival event, see the turn go 0 → 1, reload, and see turn 1 and the same fuel
+  restored.
+- `make playthrough` plays three full runs through the real UI with a scripted policy (survey,
+  refuel below 12, jump along ▲) and exports telemetry.
+
+### Median turn time (3 runs, from the telemetry export)
+
+| Run          | Outcome                        | Turns | Median turn time |
+| ------------ | ------------------------------ | ----- | ---------------- |
+| s01 / play-1 | lost: stranded                 | 36    | 0.49 s           |
+| s08 / play-2 | **won**: arrived at Kepler-452 | 58    | 0.33 s           |
+| s10 / play-3 | lost: stranded                 | 24    | 0.32 s           |
+| all          |                                | 118   | **0.37 s**       |
+
+**This is not human data.** I can't play by hand, so these three runs were played by a scripted
+Playwright policy driving the real UI. That proves the full loop works end to end, but the turn
+times measure automation speed, not thinking time. To get the real number, play 3 runs, click
+"export telemetry", and run `node packages/web/scripts/telemetry-report.ts <file>`.
+
+### Bugs found and fixed while testing
+
+1. **Telemetry got slower over time.** Each event re-read and rewrote the whole log (O(n²)), and
+   a multi-run session slowed to a crawl. Now each flushed batch is its own record in a
+   dedicated `transit-telemetry` IndexedDB store.
+2. **Navigating away right after "New run"** raced the autosave delete and resumed the finished
+   run. The app now waits for the title screen. On reload, a finished run shows its end screen
+   until "New run".
+
+### Deviations and decisions
+
+- **Data serving.** Vite serves the repo's `data/` as `publicDir`, so sectors are at
+  `/sectors/*.json` and the sim report at `/sim/*`. `vite build` copies them into `dist`. For
+  Vercel that's 20 MB of static JSON; the spec's later R2 plan fits here.
+- **Game state lives in a small external store** (`game/session.ts`, `useSyncExternalStore`).
+  Zustand holds only UI state (hover, selection), as the spec says.
+- **Long Gaia IDs** are shortened to `Gaia …1234567` in lists, labels and logs. The full ID is
+  on the hover card and system title tooltip.
+- **Added `make playthrough` and a `#lab` page** so the data and balance are viewable on the
+  tailnet and in Glance.

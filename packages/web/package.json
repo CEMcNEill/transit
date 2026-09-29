@@ -4,17 +4,28 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "content": "npm run content -w @transit/core",
+    "predev": "npm run content",
     "dev": "vite",
+    "prebuild": "npm run content",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
+    "pretypecheck": "npm run content",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json",
+    "e2e": "playwright test",
+    "playthrough": "PLAYTHROUGH=1 playwright test playthrough",
+    "telemetry-report": "node scripts/telemetry-report.ts"
   },
   "dependencies": {
     "@transit/core": "*",
+    "idb-keyval": "6.3.0",
+    "pixi.js": "8.21.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zustand": "5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "6.1.1",

@@ -1,14 +1,20 @@
 :root {
   --bg: #05080a;
+  --panel: #080d0f;
   --ink: #a9c7b8;
-  --ink-dim: #4f6b5f;
+  --ink-dim: #58756a;
   --amber: #c9a45c;
   --ice: #9fb8cc;
-  --line: #1c2a26;
+  --good: #8fc79f;
+  --warn: #d08a5c;
+  --line: #1a2925;
+  --line-bright: #2c443c;
 
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 13px;
   color: var(--ink);
   background: var(--bg);
+  color-scheme: dark;
 }
 
 * {
@@ -22,28 +28,459 @@ body,
   margin: 0;
 }
 
+body {
+  overflow: hidden;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: transparent;
+  border: 1px solid var(--line-bright);
+  padding: 4px 10px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+}
+button:hover:not(:disabled) {
+  border-color: var(--ink-dim);
+  background: #0d1614;
+}
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+button.primary {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+button.link {
+  border: none;
+  padding: 0 4px;
+  color: var(--ink-dim);
+  text-decoration: underline;
+}
+a {
+  color: var(--ice);
+}
+input,
+select {
+  background: var(--panel);
+  border: 1px solid var(--line-bright);
+  padding: 5px 8px;
+}
+
+h1,
+h2 {
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+h2 {
+  font-size: 11px;
+  color: var(--ink-dim);
+  margin: 0 0 8px;
+}
+
+.dim {
+  color: var(--ink-dim);
+}
+.small {
+  font-size: 11px;
+}
+.warn {
+  color: var(--warn);
+}
+.good {
+  color: var(--good);
+}
+
+.badge {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 4px;
+  margin-left: 6px;
+  border: 1px solid;
+  vertical-align: 1px;
+}
+.badge.real {
+  color: var(--ice);
+  border-color: #3d5566;
+}
+.real-list {
+  color: var(--ice);
+}
+
+/* ------------------------------------------------------------ title */
+
 .title-screen {
   display: grid;
   place-content: center;
+  justify-items: center;
   height: 100%;
   text-align: center;
   gap: 1rem;
+  padding: 16px;
 }
-
 .title-screen h1 {
   margin: 0;
   font-weight: 300;
   font-size: 2.5rem;
   letter-spacing: 0.6em;
-  text-transform: uppercase;
-  padding-left: 0.6em; /* balance trailing letter-spacing */
+  padding-left: 0.6em;
 }
-
-.title-screen p {
+.tagline {
   margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.2em;
   color: var(--ink-dim);
+  letter-spacing: 0.1em;
   border-top: 1px solid var(--line);
   padding-top: 1rem;
+}
+.setup {
+  display: grid;
+  gap: 12px;
+  width: min(560px, 100%);
+  text-align: left;
+  margin-top: 1rem;
+}
+.setup label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-dim);
+}
+.title-actions,
+.preview-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.title-links {
+  display: flex;
+  gap: 16px;
+  margin-top: 2rem;
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------ game layout */
+
+.game {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+}
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.meter {
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 8px;
+  align-items: baseline;
+}
+.meter-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.meter-value {
+  font-size: 14px;
+}
+.meter-bar {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: var(--line);
+  margin-top: 2px;
+}
+.meter-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ink-dim);
+}
+.meter.low .meter-value,
+.meter.low .meter-label {
+  color: var(--warn);
+}
+.meter.low .meter-bar > span {
+  background: var(--warn);
+}
+
+.game-body {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  min-height: 0;
+}
+.map-wrap {
+  position: relative;
+  min-height: 0;
+}
+.map {
+  position: absolute;
+  inset: 0;
+}
+.map canvas {
+  display: block;
+}
+.map-help {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  pointer-events: none;
+}
+.map-title {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.menu {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.side {
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  min-height: 0;
+}
+.panel {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.panel h2 {
+  font-size: 12px;
+  color: var(--ink);
+}
+.worlds {
+  list-style: none;
+  margin: 10px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.world {
+  border-left: 1px solid var(--line-bright);
+  padding: 2px 0 2px 8px;
+}
+.world.landed {
+  border-left-color: var(--amber);
+}
+.world-head {
+  display: flex;
+  align-items: baseline;
+}
+.world-actions,
+.system-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.world-actions button {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.preview {
+  border: 1px solid var(--amber);
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  display: grid;
+  gap: 4px;
+}
+.preview-title {
+  color: var(--amber);
+}
+.targets {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+.target {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-color: var(--line);
+  font-size: 11px;
+  text-align: left;
+}
+.target.selected {
+  border-color: var(--amber);
+}
+.toward {
+  display: inline-block;
+  width: 1.4em;
+  color: var(--good);
+}
+.target-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bottom {
+  border-top: 1px solid var(--line);
+  display: grid;
+  grid-template-rows: auto auto;
+}
+.ticker {
+  display: flex;
+  gap: 18px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.ticker-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.tick-turns {
+  color: var(--amber);
+}
+.tick-front,
+.tick-front .tick-turns {
+  color: var(--warn);
+}
+.log {
+  height: 120px;
+  overflow-y: auto;
+  padding: 6px 14px;
+  font-size: 11px;
+  display: grid;
+  align-content: start;
+  gap: 1px;
+}
+.log-bad {
+  color: var(--warn);
+}
+.log-good,
+.log-first {
+  color: var(--good);
+}
+.log-clock {
+  color: var(--amber);
+}
+.log-real {
+  color: var(--ice);
+}
+.log-event {
+  color: #c7b8a9;
+}
+
+.star-card {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(8, 13, 15, 0.94);
+  border: 1px solid var(--line-bright);
+  padding: 8px 10px;
+  font-size: 11px;
+  max-width: 300px;
+  display: grid;
+  gap: 2px;
+}
+.star-card-title {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 6, 0.72);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.modal {
+  width: min(520px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line-bright);
+  padding: 18px 20px;
+}
+.modal h2 {
+  color: var(--amber);
+  font-size: 13px;
+}
+.modal p {
+  line-height: 1.55;
+}
+.options {
+  display: grid;
+  gap: 6px;
+}
+.options button {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  padding: 8px 10px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+}
+.stats dt {
+  color: var(--ink-dim);
+}
+.stats dd {
+  margin: 0;
+}
+.almost {
+  color: var(--amber);
+}
+
+/* ------------------------------------------------------------ lab */
+
+.lab {
+  padding: 20px;
+  height: 100%;
+  overflow: auto;
+}
+.lab table {
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+.lab th,
+.lab td {
+  border-bottom: 1px solid var(--line);
+  padding: 4px 12px 4px 0;
+  text-align: left;
+  font-weight: 400;
+}
+.lab th {
+  color: var(--ink-dim);
+}
+
+@media (max-width: 900px) {
+  .game-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: 55vh auto;
+  }
+  body {
+    overflow: auto;
+  }
+  .side {
+    border-left: none;
+  }
 }
