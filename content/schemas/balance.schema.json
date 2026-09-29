@@ -2,26 +2,888 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "balance.schema.json",
   "title": "Transit balance numbers",
-  "description": "Every tunable gameplay number lives here. Milestone 2 extends this.",
+  "description": "Every tunable gameplay number lives here. Mirrored by the Balance type in packages/core/src/content.ts.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["jump"],
+  "required": [
+    "jump",
+    "ship",
+    "lifeSupport",
+    "sensors",
+    "front",
+    "repair",
+    "survey",
+    "firstVisit",
+    "mining",
+    "stay",
+    "clocks",
+    "events",
+    "landing",
+    "stars",
+    "generation"
+  ],
+  "definitions": {
+    "nonneg": {
+      "type": "number",
+      "minimum": 0
+    },
+    "pos": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "prob": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "range": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "starClass": {
+      "enum": ["O", "B", "A", "F", "G", "K", "M"]
+    },
+    "resourceDeltas": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fuel": {
+          "type": "number"
+        },
+        "lifeSupport": {
+          "type": "number"
+        },
+        "hull": {
+          "type": "number"
+        },
+        "materials": {
+          "type": "number"
+        },
+        "data": {
+          "type": "number"
+        }
+      }
+    },
+    "resourceRanges": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fuel": {
+          "$ref": "#/definitions/range"
+        },
+        "materials": {
+          "$ref": "#/definitions/range"
+        },
+        "lifeSupport": {
+          "$ref": "#/definitions/range"
+        }
+      }
+    },
+    "recurringClock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "every", "payoff"],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "every": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payoff": {
+          "$ref": "#/definitions/resourceDeltas"
+        }
+      }
+    },
+    "koiWeights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["planet", "eclipsingBinary", "artifact"],
+      "properties": {
+        "planet": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "eclipsingBinary": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "artifact": {
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    }
+  },
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "jump": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["startingRangeLy", "maxRangeLy"],
+      "required": [
+        "startingRangeLy",
+        "maxRangeLy",
+        "fuelBase",
+        "fuelPerLy",
+        "fuelPerLySquared",
+        "lifeSupportPerJump"
+      ],
       "properties": {
         "startingRangeLy": {
           "description": "Jump range at run start. The pipeline uses it for the start-to-goal path check.",
-          "type": "number",
-          "exclusiveMinimum": 0
+          "$ref": "#/definitions/pos"
         },
         "maxRangeLy": {
           "description": "Upper bound on jump range after upgrades. Sector neighbor lists are baked out to this range.",
+          "$ref": "#/definitions/pos"
+        },
+        "fuelBase": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "fuelPerLy": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "lifeSupportPerJump": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "fuelPerLySquared": {
+          "description": "Quadratic term: fuel = base + perLy*d + perLySquared*d^2, so mid-length hops are the most efficient and long jumps are an emergency move.",
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    },
+    "ship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "max"],
+      "properties": {
+        "start": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fuel", "lifeSupport", "hull", "materials", "data"],
+          "properties": {
+            "fuel": {
+              "$ref": "#/definitions/nonneg"
+            },
+            "lifeSupport": {
+              "$ref": "#/definitions/nonneg"
+            },
+            "hull": {
+              "$ref": "#/definitions/nonneg"
+            },
+            "materials": {
+              "$ref": "#/definitions/nonneg"
+            },
+            "data": {
+              "$ref": "#/definitions/nonneg"
+            }
+          }
+        },
+        "max": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fuel", "lifeSupport", "hull", "materials"],
+          "properties": {
+            "fuel": {
+              "$ref": "#/definitions/pos"
+            },
+            "lifeSupport": {
+              "$ref": "#/definitions/pos"
+            },
+            "hull": {
+              "$ref": "#/definitions/pos"
+            },
+            "materials": {
+              "$ref": "#/definitions/pos"
+            }
+          }
+        }
+      }
+    },
+    "lifeSupport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perTurn", "perLanding"],
+      "properties": {
+        "perTurn": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "perLanding": {
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    },
+    "sensors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rangeLy"],
+      "properties": {
+        "rangeLy": {
+          "$ref": "#/definitions/pos"
+        }
+      }
+    },
+    "front": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startBehindLy", "speedLyPerTurn", "hullDamagePerTurn", "warnDistanceLy"],
+      "properties": {
+        "startBehindLy": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "speedLyPerTurn": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "hullDamagePerTurn": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "warnDistanceLy": {
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    },
+    "repair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["materialsPerAction", "hullPerAction"],
+      "properties": {
+        "materialsPerAction": {
+          "$ref": "#/definitions/pos"
+        },
+        "hullPerAction": {
+          "$ref": "#/definitions/pos"
+        }
+      }
+    },
+    "survey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data", "realDataBonus"],
+      "properties": {
+        "data": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "realDataBonus": {
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    },
+    "firstVisit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostData", "landmarkData"],
+      "properties": {
+        "hostData": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "landmarkData": {
+          "$ref": "#/definitions/nonneg"
+        }
+      }
+    },
+    "mining": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["perAction", "hazardChance", "hazardDamage"],
+      "properties": {
+        "perAction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["fuel", "materials", "lifeSupport"],
+          "properties": {
+            "fuel": {
+              "$ref": "#/definitions/pos"
+            },
+            "materials": {
+              "$ref": "#/definitions/pos"
+            },
+            "lifeSupport": {
+              "$ref": "#/definitions/pos"
+            }
+          }
+        },
+        "hazardChance": {
+          "$ref": "#/definitions/prob"
+        },
+        "hazardDamage": {
+          "$ref": "#/definitions/range"
+        }
+      }
+    },
+    "stay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "yieldGrowthPerTurn",
+        "hazardChanceBase",
+        "hazardChancePerTurn",
+        "hazardDamage",
+        "clockTurns",
+        "clockPayoff"
+      ],
+      "properties": {
+        "yieldGrowthPerTurn": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "hazardChanceBase": {
+          "$ref": "#/definitions/prob"
+        },
+        "hazardChancePerTurn": {
+          "$ref": "#/definitions/prob"
+        },
+        "hazardDamage": {
+          "$ref": "#/definitions/range"
+        },
+        "clockTurns": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "clockPayoff": {
+          "$ref": "#/definitions/resourceDeltas"
+        }
+      }
+    },
+    "clocks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recycler", "sensorSweep", "analysis", "spectrum"],
+      "properties": {
+        "recycler": {
+          "$ref": "#/definitions/recurringClock"
+        },
+        "sensorSweep": {
+          "$ref": "#/definitions/recurringClock"
+        },
+        "analysis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "turns", "payoff"],
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "turns": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "payoff": {
+              "$ref": "#/definitions/resourceDeltas"
+            }
+          }
+        },
+        "spectrum": {
+          "description": "Started on each first visit to a star.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "turns", "payoff"],
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "turns": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "payoff": {
+              "$ref": "#/definitions/resourceDeltas"
+            }
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arrivalChance", "landingChance", "stayChance"],
+      "properties": {
+        "arrivalChance": {
+          "$ref": "#/definitions/prob"
+        },
+        "landingChance": {
+          "$ref": "#/definitions/prob"
+        },
+        "stayChance": {
+          "$ref": "#/definitions/prob"
+        }
+      }
+    },
+    "landing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unsurveyedRiskBonus", "damage", "risk"],
+      "properties": {
+        "unsurveyedRiskBonus": {
+          "$ref": "#/definitions/prob"
+        },
+        "damage": {
+          "$ref": "#/definitions/range"
+        },
+        "risk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rocky", "super-earth", "ocean", "ice", "desert", "lava", "belt"],
+          "properties": {
+            "rocky": {
+              "$ref": "#/definitions/prob"
+            },
+            "super-earth": {
+              "$ref": "#/definitions/prob"
+            },
+            "ocean": {
+              "$ref": "#/definitions/prob"
+            },
+            "ice": {
+              "$ref": "#/definitions/prob"
+            },
+            "desert": {
+              "$ref": "#/definitions/prob"
+            },
+            "lava": {
+              "$ref": "#/definitions/prob"
+            },
+            "belt": {
+              "$ref": "#/definitions/prob"
+            }
+          }
+        }
+      }
+    },
+    "stars": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "solarTeffK",
+        "classes",
+        "defaultTeffK",
+        "defaultClass",
+        "bpRpToTeff",
+        "typicalRadius",
+        "hazard"
+      ],
+      "properties": {
+        "solarTeffK": {
+          "$ref": "#/definitions/pos"
+        },
+        "classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cls", "minTeff"],
+            "properties": {
+              "cls": {
+                "$ref": "#/definitions/starClass"
+              },
+              "minTeff": {
+                "$ref": "#/definitions/nonneg"
+              }
+            }
+          }
+        },
+        "defaultClass": {
+          "$ref": "#/definitions/starClass"
+        },
+        "bpRpToTeff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["note", "points"],
+          "properties": {
+            "note": {
+              "type": "string"
+            },
+            "points": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "$ref": "#/definitions/range"
+              }
+            }
+          }
+        },
+        "typicalRadius": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["O", "B", "A", "F", "G", "K", "M"],
+          "properties": {
+            "O": {
+              "$ref": "#/definitions/pos"
+            },
+            "B": {
+              "$ref": "#/definitions/pos"
+            },
+            "A": {
+              "$ref": "#/definitions/pos"
+            },
+            "F": {
+              "$ref": "#/definitions/pos"
+            },
+            "G": {
+              "$ref": "#/definitions/pos"
+            },
+            "K": {
+              "$ref": "#/definitions/pos"
+            },
+            "M": {
+              "$ref": "#/definitions/pos"
+            }
+          }
+        },
+        "hazard": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["O", "B", "A", "F", "G", "K", "M"],
+          "properties": {
+            "O": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "B": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "A": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "F": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "G": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "K": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            },
+            "M": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["kind", "chance", "damage"],
+              "properties": {
+                "kind": {
+                  "enum": ["none", "flare", "radiation"]
+                },
+                "chance": {
+                  "$ref": "#/definitions/prob"
+                },
+                "damage": {
+                  "$ref": "#/definitions/range"
+                }
+              }
+            }
+          }
+        },
+        "defaultTeffK": {
+          "description": "Used when a star has neither Teff nor BP-RP.",
+          "$ref": "#/definitions/pos"
+        }
+      }
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planetCountWeights",
+        "firstOrbitAu",
+        "orbitRatio",
+        "realOrbitClearanceRatio",
+        "beltChance",
+        "radiusEarthLogRange",
+        "radiusSkew",
+        "koiResolution",
+        "worldTypes",
+        "resources",
+        "temperateLifeSupport",
+        "metallicityRichness"
+      ],
+      "properties": {
+        "planetCountWeights": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["O", "B", "A", "F", "G", "K", "M"],
+          "properties": {
+            "O": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "B": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "A": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "F": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "G": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "K": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            },
+            "M": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "$ref": "#/definitions/nonneg"
+              }
+            }
+          }
+        },
+        "firstOrbitAu": {
+          "$ref": "#/definitions/range"
+        },
+        "orbitRatio": {
+          "$ref": "#/definitions/range"
+        },
+        "realOrbitClearanceRatio": {
           "type": "number",
-          "exclusiveMinimum": 0
+          "minimum": 1
+        },
+        "beltChance": {
+          "$ref": "#/definitions/prob"
+        },
+        "radiusEarthLogRange": {
+          "$ref": "#/definitions/range"
+        },
+        "koiResolution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base", "flagMultipliers", "scoreWeight", "resolvedData"],
+          "properties": {
+            "base": {
+              "$ref": "#/definitions/koiWeights"
+            },
+            "flagMultipliers": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["notTransitLike", "stellarEclipse", "centroidOffset", "ephemerisMatch"],
+              "properties": {
+                "notTransitLike": {
+                  "$ref": "#/definitions/koiWeights"
+                },
+                "stellarEclipse": {
+                  "$ref": "#/definitions/koiWeights"
+                },
+                "centroidOffset": {
+                  "$ref": "#/definitions/koiWeights"
+                },
+                "ephemerisMatch": {
+                  "$ref": "#/definitions/koiWeights"
+                }
+              }
+            },
+            "scoreWeight": {
+              "$ref": "#/definitions/nonneg"
+            },
+            "resolvedData": {
+              "$ref": "#/definitions/koiWeights"
+            }
+          }
+        },
+        "worldTypes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "giantRadiusEarth",
+            "iceGiantRadiusEarth",
+            "superEarthRadiusEarth",
+            "iceGiantMaxTeqK",
+            "lavaMinTeqK",
+            "desertMinTeqK",
+            "temperateMinTeqK",
+            "oceanChanceTemperate"
+          ],
+          "properties": {
+            "giantRadiusEarth": {
+              "$ref": "#/definitions/pos"
+            },
+            "iceGiantRadiusEarth": {
+              "$ref": "#/definitions/pos"
+            },
+            "superEarthRadiusEarth": {
+              "$ref": "#/definitions/pos"
+            },
+            "iceGiantMaxTeqK": {
+              "$ref": "#/definitions/pos"
+            },
+            "lavaMinTeqK": {
+              "$ref": "#/definitions/pos"
+            },
+            "desertMinTeqK": {
+              "$ref": "#/definitions/pos"
+            },
+            "temperateMinTeqK": {
+              "$ref": "#/definitions/pos"
+            },
+            "oceanChanceTemperate": {
+              "$ref": "#/definitions/prob"
+            }
+          }
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "gas-giant",
+            "ice-giant",
+            "ice",
+            "rocky",
+            "desert",
+            "lava",
+            "super-earth",
+            "ocean",
+            "belt"
+          ],
+          "properties": {
+            "gas-giant": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "ice-giant": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "ice": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "rocky": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "desert": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "lava": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "super-earth": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "ocean": {
+              "$ref": "#/definitions/resourceRanges"
+            },
+            "belt": {
+              "$ref": "#/definitions/resourceRanges"
+            }
+          }
+        },
+        "temperateLifeSupport": {
+          "$ref": "#/definitions/range"
+        },
+        "metallicityRichness": {
+          "$ref": "#/definitions/nonneg"
+        },
+        "radiusSkew": {
+          "description": "Exponent >1 skews procedural planet radii toward small worlds (log-radius = lo + (hi-lo) * u^skew).",
+          "type": "number",
+          "minimum": 1
         }
       }
     }

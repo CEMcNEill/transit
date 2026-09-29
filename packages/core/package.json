@@ -6,12 +6,19 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
+    "content": "node scripts/build-content.ts",
+    "pretypecheck": "npm run content",
     "typecheck": "tsc -p tsconfig.json && tsc -p test/tsconfig.json",
-    "test": "vitest run"
+    "pretest": "npm run content",
+    "test": "vitest run",
+    "sim": "node scripts/sim.ts"
   },
   "devDependencies": {
     "ajv": "8.20.0",
     "vitest": "5.0.2",
     "yaml": "2.9.1"
+  },
+  "exports": {
+    ".": "./src/index.ts"
   }
 }

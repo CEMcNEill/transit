@@ -1,0 +1,25 @@
+id: ice-moon-fuel
+title: Volatile ice
+trigger: arrival
+tags:
+  worldTypes: [ice, ice-giant, gas-giant]
+weight: 10
+text: >
+  Spectroscopy lights up a small moon: water ice, ammonia, clean volatiles lying right on the
+  surface. A quick pass with the scoop could top off the tanks.
+options:
+  - id: harvest
+    label: Make a scoop pass
+    cost: { lifeSupport: 1 }
+    chance: 0.85
+    success:
+      deltas: { fuel: 10 }
+      log: Scooped volatiles from an ice moon and cracked them into fuel.
+    failure:
+      deltas: { hull: -8, fuel: 3 }
+      log: The scoop clipped a ridge. We got a little fuel and a dented intake.
+  - id: pass
+    label: Note it and move on
+    success:
+      deltas: { data: 1 }
+      log: Logged an ice moon rich in volatiles.

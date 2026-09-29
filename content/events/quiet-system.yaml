@@ -1,0 +1,28 @@
+id: quiet-system
+title: A quiet system
+trigger: arrival
+tags:
+  firstVisit: true
+  starHazard: [none]
+weight: 8
+text: >
+  A calm star, stable orbits, nothing on the threat board. The crew asks for a day. The engineers
+  ask for the same day, for repairs.
+options:
+  - id: rest
+    label: Give the crew a day off
+    success:
+      passTurns: 1
+      deltas: { lifeSupport: 4 }
+      log: A day of rest. The recyclers caught up while the crew slept.
+  - id: repair
+    label: Spend the day on repairs
+    cost: { materials: 4 }
+    success:
+      passTurns: 1
+      deltas: { hull: 20 }
+      log: A day of welding and patching. The hull is sounder.
+  - id: move-on
+    label: No time. Keep moving
+    success:
+      log: We passed through the quiet system without stopping.

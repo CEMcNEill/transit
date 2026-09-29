@@ -1,0 +1,22 @@
+id: micrometeoroid-swarm
+title: Micrometeoroid swarm
+trigger: stay
+weight: 10
+text: >
+  The proximity radar fills with pinpricks: a stream of dust and gravel crossing our orbit, the
+  debris of some comet that broke apart here long ago.
+options:
+  - id: shields
+    label: Angle the shields into the stream
+    cost: { materials: 3 }
+    success:
+      deltas: { hull: -2 }
+      log: The swarm rattled off angled shielding.
+  - id: push
+    label: Push through
+    chance: 0.5
+    success:
+      log: The swarm thinned out before it reached us.
+    failure:
+      deltas: { hull: -18 }
+      log: Dozens of impacts. Two compartments sealed off.

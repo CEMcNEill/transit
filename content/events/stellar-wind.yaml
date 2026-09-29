@@ -1,0 +1,24 @@
+id: stellar-wind
+title: Stellar wind
+trigger: arrival
+tags:
+  starClass: [O, B, A, F]
+weight: 8
+text: >
+  This star is hot and loud. Its wind streams past at hundreds of kilometers a second, and a
+  properly trimmed sail could borrow some of that push.
+options:
+  - id: ride
+    label: Trim the sail and ride the wind
+    chance: 0.7
+    success:
+      deltas: { fuel: 5 }
+      log: Rode the stellar wind and saved fuel.
+    failure:
+      deltas: { hull: -10 }
+      log: A gust of charged particles tore at the sail rigging.
+  - id: shelter
+    label: Shelter behind the ship's mass
+    cost: { lifeSupport: 1 }
+    success:
+      log: Waited out the wind in shelter.

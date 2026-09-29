@@ -1,0 +1,23 @@
+id: rough-landing
+title: Rough descent
+trigger: landing
+weight: 10
+text: >
+  Crosswinds nobody predicted. The lander bucks, and the ground radar is showing boulders where
+  the survey promised a plain.
+options:
+  - id: abort
+    label: Abort and climb back to orbit
+    cost: { lifeSupport: 1 }
+    success:
+      liftOff: true
+      log: Aborted the landing and climbed back to orbit.
+  - id: hold
+    label: Hold the descent
+    chance: 0.6
+    success:
+      deltas: { materials: 3 }
+      log: Set down hard but whole, next to an exposed seam of ore.
+    failure:
+      deltas: { hull: -15 }
+      log: The lander hit hard. Structural damage.

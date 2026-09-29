@@ -66,7 +66,9 @@ GAIA_QUERY = GaiaQueryConfig()
 # ---------------------------------------------------------------- corridors
 @dataclass(frozen=True)
 class CorridorConfig:
-    length_ly: tuple[float, float] = (200.0, 300.0)
+    # Spec suggests ~200-300 ly; lengthened so shortest paths land ~30-45 jumps and runs hit the
+    # 35-55 jump target from the balance sim (see NOTES.md, Milestone 2).
+    length_ly: tuple[float, float] = (280.0, 360.0)
     radius_ly: tuple[float, float] = (25.0, 40.0)
     star_count: tuple[int, int] = (300, 1500)
     path_jumps: tuple[int, int] = (25, 45)
@@ -82,6 +84,10 @@ class CorridorConfig:
     goal_search_ly: float = 25.0
     # Extra candidates per landmark whose goal end sits just past the landmark.
     landmark_candidates: int = 400
+    # Landmark tubes may be shorter: near landmarks sit where the field's cone is too narrow for
+    # long tubes. They still must pass the same path-length check.
+    landmark_length_ly: tuple[float, float] = (200.0, 340.0)
+    landmark_axis_tilt: float = 0.4
     landmark_goal_offset_ly: tuple[float, float] = (-15.0, -3.0)
     # Two baked sectors may share at most this fraction of the smaller one's stars.
     max_overlap: float = 0.2

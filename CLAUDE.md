@@ -50,6 +50,14 @@ art, audio, cinematics, 3D, and deployment. Leave clean seams for these.
 - **TypeScript:** kept at 6.0.x because typescript-eslint 8.71 supports `<6.1`. Upgrade both
   together. Strict mode is on, including `noUncheckedIndexedAccess` and
   `exactOptionalPropertyTypes`.
+- **Core code:** TypeScript imports use `.ts` extensions (`erasableSyntaxOnly`), so Node 22
+  runs `packages/core/scripts/*.ts` directly. Content is compiled by
+  `packages/core/scripts/build-content.ts` into the gitignored `src/generated/content.json`. It
+  runs automatically before typecheck, test and sim; run it by hand after editing `content/`.
+- **Randomness:** no mutable RNG in state. Every roll is `rngFor(runSeed, ...context)` with a
+  context unique to that decision, so replay is exact. Tests prove byte-identical replay.
+- **Balance changes:** run `make sim` (or `make sim SIM_ARGS="--runs 50"` for quick checks) and
+  record the result in NOTES.md.
 - **Formatting:** TS/JS/JSON/CSS/MD use Prettier (100 columns, single quotes). Python uses ruff
   (100 columns).
 - **Web build:** must stay a plain static Vite SPA. No server runtime and no Node APIs in

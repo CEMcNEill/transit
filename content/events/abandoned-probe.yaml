@@ -1,0 +1,33 @@
+id: abandoned-probe
+title: Abandoned probe
+trigger: arrival
+tags:
+  minTurn: 1
+  once: true
+weight: 7
+text: >
+  A small probe with a failing transmitter drifts on a slow orbit. Its memory core is intact, but
+  the encryption is old and stubborn. Towing it along would let the computer work on it.
+options:
+  - id: tow
+    label: Tow it and crack the core over time
+    cost: { fuel: 3 }
+    success:
+      clock:
+        kind: delayed
+        label: Probe core decryption
+        turns: 6
+        payoff:
+          deltas: { data: 10, materials: 8 }
+          log: The probe's core opened. Survey maps, and a bay full of spare parts.
+      log: Took the probe in tow and started decryption.
+  - id: strip
+    label: Strip it for parts now
+    success:
+      deltas: { materials: 3 }
+      cargo: { probe-core: 1 }
+      log: Stripped the probe and kept its core as a curiosity.
+  - id: leave
+    label: Leave it transmitting
+    success:
+      log: We left the probe calling to no one.

@@ -1,0 +1,25 @@
+id: flare-warning
+title: Flare warning
+trigger: arrival
+tags:
+  starHazard: [flare]
+weight: 12
+text: >
+  The star's magnetic field is knotting on the sensors. Small, cool stars like this one flare
+  without warning, and the models give us minutes, not hours.
+options:
+  - id: shield
+    label: Reinforce shielding
+    cost: { materials: 2 }
+    success:
+      deltas: { hull: -2 }
+      log: The flare broke over reinforced shielding. Minor scorching.
+  - id: brace
+    label: Brace and ride it out
+    chance: 0.5
+    success:
+      deltas: { data: 2 }
+      log: The flare missed us. The instruments recorded it beautifully.
+    failure:
+      deltas: { hull: -15 }
+      log: The flare hit square on. Hull stress alarms across three decks.

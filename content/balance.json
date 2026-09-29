@@ -2,6 +2,310 @@
   "$schema": "./schemas/balance.schema.json",
   "jump": {
     "startingRangeLy": 12,
-    "maxRangeLy": 30
+    "maxRangeLy": 30,
+    "fuelBase": 1,
+    "fuelPerLy": 0,
+    "fuelPerLySquared": 0.03,
+    "lifeSupportPerJump": 0.5
+  },
+  "ship": {
+    "start": {
+      "fuel": 24,
+      "lifeSupport": 24,
+      "hull": 100,
+      "materials": 4,
+      "data": 0
+    },
+    "max": {
+      "fuel": 40,
+      "lifeSupport": 40,
+      "hull": 100,
+      "materials": 30
+    }
+  },
+  "lifeSupport": {
+    "perTurn": 0.5,
+    "perLanding": 1
+  },
+  "sensors": {
+    "rangeLy": 20
+  },
+  "front": {
+    "startBehindLy": 30,
+    "speedLyPerTurn": 3.5,
+    "hullDamagePerTurn": 30,
+    "warnDistanceLy": 20
+  },
+  "repair": {
+    "materialsPerAction": 4,
+    "hullPerAction": 20
+  },
+  "survey": {
+    "data": 1,
+    "realDataBonus": 3
+  },
+  "firstVisit": {
+    "hostData": 2,
+    "landmarkData": 10
+  },
+  "mining": {
+    "perAction": {
+      "fuel": 6,
+      "materials": 5,
+      "lifeSupport": 5
+    },
+    "hazardChance": 0.2,
+    "hazardDamage": [6, 16]
+  },
+  "stay": {
+    "yieldGrowthPerTurn": 0.5,
+    "hazardChanceBase": 0.1,
+    "hazardChancePerTurn": 0.1,
+    "hazardDamage": [6, 14],
+    "clockTurns": 3,
+    "clockPayoff": {
+      "data": 3,
+      "fuel": 3
+    }
+  },
+  "clocks": {
+    "recycler": {
+      "label": "Recycler cycle",
+      "every": 4,
+      "payoff": {
+        "lifeSupport": 2
+      }
+    },
+    "sensorSweep": {
+      "label": "Deep sensor sweep",
+      "every": 3,
+      "payoff": {
+        "data": 1
+      }
+    },
+    "analysis": {
+      "label": "Survey analysis",
+      "turns": 2,
+      "payoff": {
+        "data": 2
+      }
+    },
+    "spectrum": {
+      "label": "Spectrum analysis",
+      "turns": 2,
+      "payoff": {
+        "data": 1
+      }
+    }
+  },
+  "events": {
+    "arrivalChance": 0.35,
+    "landingChance": 0.25,
+    "stayChance": 0.2
+  },
+  "landing": {
+    "unsurveyedRiskBonus": 0.15,
+    "damage": [6, 16],
+    "risk": {
+      "rocky": 0.1,
+      "super-earth": 0.2,
+      "ocean": 0.15,
+      "ice": 0.12,
+      "desert": 0.15,
+      "lava": 0.35,
+      "belt": 0.08
+    }
+  },
+  "stars": {
+    "solarTeffK": 5772,
+    "classes": [
+      {
+        "cls": "O",
+        "minTeff": 30000
+      },
+      {
+        "cls": "B",
+        "minTeff": 10000
+      },
+      {
+        "cls": "A",
+        "minTeff": 7500
+      },
+      {
+        "cls": "F",
+        "minTeff": 6000
+      },
+      {
+        "cls": "G",
+        "minTeff": 5200
+      },
+      {
+        "cls": "K",
+        "minTeff": 3700
+      },
+      {
+        "cls": "M",
+        "minTeff": 0
+      }
+    ],
+    "defaultClass": "M",
+    "bpRpToTeff": {
+      "note": "Approximate main-sequence Gaia BP-RP to Teff relation (after Mamajek's dwarf color sequence); only used when a star has no Teff.",
+      "points": [
+        [-0.1, 11000],
+        [0.0, 9700],
+        [0.35, 7400],
+        [0.59, 6500],
+        [0.82, 5770],
+        [0.98, 5270],
+        [1.43, 4440],
+        [1.84, 3850],
+        [2.55, 3400],
+        [3.3, 3060],
+        [4.5, 2700]
+      ]
+    },
+    "typicalRadius": {
+      "O": 8,
+      "B": 4,
+      "A": 1.8,
+      "F": 1.3,
+      "G": 1,
+      "K": 0.8,
+      "M": 0.4
+    },
+    "hazard": {
+      "O": {
+        "kind": "radiation",
+        "chance": 0.35,
+        "damage": [8, 18]
+      },
+      "B": {
+        "kind": "radiation",
+        "chance": 0.25,
+        "damage": [6, 14]
+      },
+      "A": {
+        "kind": "radiation",
+        "chance": 0.12,
+        "damage": [4, 10]
+      },
+      "F": {
+        "kind": "none",
+        "chance": 0,
+        "damage": [0, 0]
+      },
+      "G": {
+        "kind": "none",
+        "chance": 0,
+        "damage": [0, 0]
+      },
+      "K": {
+        "kind": "flare",
+        "chance": 0.05,
+        "damage": [4, 10]
+      },
+      "M": {
+        "kind": "flare",
+        "chance": 0.18,
+        "damage": [5, 14]
+      }
+    },
+    "defaultTeffK": 3500
+  },
+  "generation": {
+    "planetCountWeights": {
+      "O": [5, 3, 2, 1, 1, 0, 0, 0, 0],
+      "B": [4, 3, 2, 2, 1, 1, 0, 0, 0],
+      "A": [2, 2, 3, 3, 2, 1, 1, 0, 0],
+      "F": [1, 2, 3, 4, 4, 3, 2, 1, 1],
+      "G": [1, 2, 3, 4, 4, 3, 2, 1, 1],
+      "K": [1, 2, 3, 4, 3, 3, 2, 1, 1],
+      "M": [2, 3, 4, 4, 3, 2, 1, 1, 0]
+    },
+    "firstOrbitAu": [0.04, 0.3],
+    "orbitRatio": [1.4, 2.2],
+    "realOrbitClearanceRatio": 1.25,
+    "beltChance": 0.12,
+    "radiusEarthLogRange": [-0.3, 1.1],
+    "radiusSkew": 2.2,
+    "koiResolution": {
+      "base": {
+        "planet": 0.6,
+        "eclipsingBinary": 0.25,
+        "artifact": 0.15
+      },
+      "flagMultipliers": {
+        "notTransitLike": {
+          "planet": 0.3,
+          "eclipsingBinary": 1,
+          "artifact": 3
+        },
+        "stellarEclipse": {
+          "planet": 0.3,
+          "eclipsingBinary": 3,
+          "artifact": 1
+        },
+        "centroidOffset": {
+          "planet": 0.3,
+          "eclipsingBinary": 1.5,
+          "artifact": 2
+        },
+        "ephemerisMatch": {
+          "planet": 0.3,
+          "eclipsingBinary": 1,
+          "artifact": 2
+        }
+      },
+      "scoreWeight": 1,
+      "resolvedData": {
+        "planet": 4,
+        "eclipsingBinary": 2,
+        "artifact": 1
+      }
+    },
+    "worldTypes": {
+      "giantRadiusEarth": 6,
+      "iceGiantRadiusEarth": 2.5,
+      "superEarthRadiusEarth": 1.6,
+      "iceGiantMaxTeqK": 400,
+      "lavaMinTeqK": 1000,
+      "desertMinTeqK": 320,
+      "temperateMinTeqK": 200,
+      "oceanChanceTemperate": 0.5
+    },
+    "resources": {
+      "gas-giant": {
+        "fuel": [6, 16]
+      },
+      "ice-giant": {
+        "fuel": [5, 12]
+      },
+      "ice": {
+        "fuel": [3, 8],
+        "lifeSupport": [0, 4]
+      },
+      "rocky": {
+        "materials": [4, 12]
+      },
+      "desert": {
+        "materials": [3, 9]
+      },
+      "lava": {
+        "materials": [6, 16]
+      },
+      "super-earth": {
+        "materials": [4, 10]
+      },
+      "ocean": {
+        "lifeSupport": [6, 14],
+        "fuel": [0, 4]
+      },
+      "belt": {
+        "materials": [6, 14]
+      }
+    },
+    "temperateLifeSupport": [3, 8],
+    "metallicityRichness": 1.5
   }
 }

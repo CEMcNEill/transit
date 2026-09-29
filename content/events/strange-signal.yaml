@@ -1,0 +1,29 @@
+id: strange-signal
+title: Strange signal
+trigger: arrival
+tags:
+  minTurn: 2
+  once: true
+weight: 8
+text: >
+  A narrowband pulse, repeating, from somewhere ahead in the corridor. Not a pulsar. Not anything
+  in the catalogs. Decoding it would take the computer days of cycles.
+options:
+  - id: decode
+    label: Record it and start decoding
+    cost: { data: 2 }
+    success:
+      clock:
+        kind: decode
+        label: Signal decode
+        turns: 5
+        payoff:
+          deltas: { data: 12 }
+          revealCache: { fuel: 15, materials: 5 }
+          log: The signal resolved into coordinates. Something was left for us ahead.
+      log: Started decoding the signal.
+  - id: ignore
+    label: Log it and move on
+    success:
+      deltas: { data: 1 }
+      log: Logged an unidentified narrowband signal.

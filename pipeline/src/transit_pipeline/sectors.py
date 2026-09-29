@@ -169,8 +169,17 @@ class Searcher:
                 out.append(cand)
         # Targeted candidates that end at each landmark, so a qualifying landmark can be a goal.
         for lm in np.flatnonzero(self.landmark):
+            radial = self.pos[lm] / np.linalg.norm(self.pos[lm])
             for _ in range(self.cfg.landmark_candidates):
-                d, length, r = self._random_axis(rng)
+                # Roughly along the line of sight, either way: near the Sun the field's cone is
+                # narrow, and randomly oriented tubes almost never fit inside it.
+                d = (
+                    radial * rng.choice([-1.0, 1.0])
+                    + rng.normal(size=3) * self.cfg.landmark_axis_tilt
+                )
+                d /= np.linalg.norm(d)
+                r = rng.uniform(*self.cfg.radius_ly)
+                length = rng.uniform(*self.cfg.landmark_length_ly)
                 b = self.pos[lm] + d * rng.uniform(*self.cfg.landmark_goal_offset_ly)
                 cand = self.evaluate(b - d * length, b, r)
                 if cand and lm in cand.members:
@@ -238,7 +247,14 @@ class Searcher:
                     break
                 if try_accept(cand):
                     break
-        for cand in ranked:
+        # Then by score, without the landmark bonus for landmarks that already have a sector.
+        covered = {int(i) for c in chosen for i in c.members[self.landmark[c.members]]}
+
+        def fresh_score(c: Candidate) -> float:
+            dup = sum(int(i) in covered for i in c.members[self.landmark[c.members]])
+            return c.score - dup * self.cfg.w_landmark
+
+        for cand in sorted(cands, key=lambda c: -fresh_score(c)):
             if len(chosen) == self.cfg.sectors_to_bake:
                 break
             if cand not in chosen:

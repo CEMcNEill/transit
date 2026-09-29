@@ -1,0 +1,24 @@
+id: temperate-first-sighting
+title: A temperate world
+trigger: arrival
+tags:
+  temperateWorld: true
+  once: true
+weight: 30
+text: >
+  One of the worlds here sits where water could stay liquid. From this distance it is a single pale
+  pixel, and nobody aboard has ever seen one this close.
+options:
+  - id: long-look
+    label: Hold position for a long look
+    cost: { lifeSupport: 2 }
+    success:
+      deltas: { data: 12 }
+      first: temperate-world
+      log: First temperate world observed up close. The crew stayed at the windows for hours.
+  - id: note
+    label: Record it and keep moving
+    success:
+      deltas: { data: 4 }
+      first: temperate-world
+      log: First temperate world recorded.

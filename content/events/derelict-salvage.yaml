@@ -1,0 +1,29 @@
+id: derelict-salvage
+title: Derelict hulk
+trigger: arrival
+tags:
+  minTurn: 1
+weight: 10
+text: >
+  A dark shape tumbles slowly against the starfield: an old survey hull, cold for longer than
+  anyone aboard has been alive. Its reactor is dead. Its hold might not be.
+options:
+  - id: cut-in
+    label: Cut into the hold
+    cost: { lifeSupport: 1 }
+    chance: 0.75
+    success:
+      deltas: { materials: 6, fuel: 4 }
+      log: Salvaged plating and a sealed fuel cell from the derelict.
+    failure:
+      deltas: { hull: -12 }
+      log: The derelict's hull buckled as we cut. Debris struck our own.
+  - id: scan
+    label: Scan it from a distance
+    success:
+      deltas: { data: 3 }
+      log: Catalogued the derelict's configuration. Someone came this way before us.
+  - id: leave
+    label: Leave it drifting
+    success:
+      log: We left the derelict to its slow tumble.

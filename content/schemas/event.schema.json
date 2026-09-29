@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event.schema.json",
+  "title": "Transit event",
+  "description": "One event per YAML file in content/events/. Mirrored by EventDef in packages/core/src/content.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "trigger", "weight", "text", "options"],
+  "definitions": {
+    "resource": { "enum": ["fuel", "lifeSupport", "hull", "materials", "data"] },
+    "deltas": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fuel": { "type": "number" },
+        "lifeSupport": { "type": "number" },
+        "hull": { "type": "number" },
+        "materials": { "type": "number" },
+        "data": { "type": "number" }
+      }
+    },
+    "payoff": {
+      "description": "What a clock does when it completes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["log"],
+      "properties": {
+        "deltas": { "$ref": "#/definitions/deltas" },
+        "cargo": { "$ref": "#/definitions/cargo" },
+        "revealCache": {
+          "description": "Mark an unvisited star ahead as holding a cache with these resources.",
+          "$ref": "#/definitions/deltas"
+        },
+        "log": { "type": "string", "minLength": 1 }
+      }
+    },
+    "cargo": {
+      "type": "object",
+      "additionalProperties": { "type": "integer" },
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" }
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["log"],
+      "properties": {
+        "deltas": { "$ref": "#/definitions/deltas" },
+        "cargo": { "$ref": "#/definitions/cargo" },
+        "passTurns": {
+          "description": "Time spent: advances the calendar (front, clocks, life support) this many turns.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "liftOff": {
+          "description": "Leave the surface of the world you landed on.",
+          "const": true
+        },
+        "first": {
+          "description": "Record a named first for this run (shown in the run summary).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "clock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "label", "turns", "payoff"],
+          "properties": {
+            "kind": { "enum": ["decode", "delayed"] },
+            "label": { "type": "string", "minLength": 1 },
+            "turns": { "type": "integer", "minimum": 1, "maximum": 20 },
+            "payoff": { "$ref": "#/definitions/payoff" }
+          }
+        },
+        "log": { "type": "string", "minLength": 1 }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "cost": {
+          "description": "Paid up front and shown on the option. The option is disabled if unaffordable.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fuel": { "type": "number", "exclusiveMinimum": 0 },
+            "lifeSupport": { "type": "number", "exclusiveMinimum": 0 },
+            "materials": { "type": "number", "exclusiveMinimum": 0 },
+            "data": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "chance": {
+          "description": "Probability of success, shown to the player. Requires both success and failure.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "success": { "$ref": "#/definitions/outcome" },
+        "failure": { "$ref": "#/definitions/outcome" }
+      },
+      "if": { "required": ["chance"] },
+      "then": { "required": ["success", "failure"] },
+      "else": { "required": ["success"], "not": { "required": ["failure"] } }
+    }
+  },
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "trigger": { "enum": ["arrival", "landing", "stay"] },
+    "tags": {
+      "description": "Eligibility conditions. All listed conditions must hold.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "firstVisit": { "type": "boolean" },
+        "starClass": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["O", "B", "A", "F", "G", "K", "M"] }
+        },
+        "worldTypes": {
+          "description": "For arrival/stay: the system has a world of one of these types. For landing: the landed world is one of these types.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "rocky",
+              "super-earth",
+              "ocean",
+              "ice",
+              "desert",
+              "lava",
+              "gas-giant",
+              "ice-giant",
+              "belt"
+            ]
+          }
+        },
+        "temperateWorld": {
+          "description": "The system has a world in the temperate band.",
+          "type": "boolean"
+        },
+        "starHazard": { "type": "array", "items": { "enum": ["none", "flare", "radiation"] } },
+        "minTurn": { "type": "integer", "minimum": 0 },
+        "once": { "description": "At most once per run.", "type": "boolean" }
+      }
+    },
+    "weight": { "type": "number", "exclusiveMinimum": 0 },
+    "text": { "type": "string", "minLength": 1 },
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": { "$ref": "#/definitions/option" }
+    }
+  }
+}

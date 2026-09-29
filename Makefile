@@ -26,8 +26,10 @@ test-js:
 test-py:
 	cd pipeline && uv run pytest -q
 
+# Balance sim over every baked sector (needs `make data`). Pass args with SIM_ARGS="--runs 50".
 sim:
-	@echo "make sim: simulation harness arrives in Milestone 2" >&2; exit 2
+	npm run content -w @transit/core
+	npm run sim -w @transit/core -- $(SIM_ARGS)
 
 dev:
 	npm run dev

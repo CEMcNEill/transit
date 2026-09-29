@@ -87,42 +87,50 @@ sectors when present). The 4 network tests pass with `RUN_NETWORK_TESTS=1`.
 
 ### Sectors
 
+These were re-baked during Milestone 2: the corridor length was tuned to hit the sim's run-length
+target (see M2, deviation 1). This table is the current bake.
+
 | Sector | Stars | Hosts | KOIs (stars) | Landmarks              | Distance from Sun (center) | Length × radius | G cut | Shortest path (≤12 ly jumps) | File     |
 | ------ | ----- | ----- | ------------ | ---------------------- | -------------------------- | --------------- | ----- | ---------------------------- | -------- |
-| s01    | 1500  | 13    | 23 (19)      | Kepler-22 (goal)       | 761 ly                     | 231 × 40 ly     | 18.59 | 28 jumps                     | 2,182 KB |
-| s02    | 1500  | 17    | 34 (20)      | —                      | 910 ly                     | 229 × 38 ly     | 19.2  | 27 jumps                     | 2,380 KB |
-| s03    | 1500  | 16    | 34 (19)      | —                      | 1,019 ly                   | 292 × 39 ly     | 18.27 | 40 jumps                     | 1,882 KB |
-| s04    | 1347  | 10    | 15 (11)      | Kepler-10              | 513 ly                     | 226 × 32 ly     | —     | 25 jumps                     | 2,424 KB |
-| s05    | 1500  | 14    | 31 (19)      | —                      | 965 ly                     | 260 × 35 ly     | 19.27 | 32 jumps                     | 2,311 KB |
-| s06    | 1500  | 14    | 29 (18)      | —                      | 1,178 ly                   | 285 × 40 ly     | 18.62 | 35 jumps                     | 1,875 KB |
-| s07    | 1500  | 8     | 12 (10)      | Kepler-22              | 717 ly                     | 274 × 32 ly     | 19.43 | 33 jumps                     | 2,488 KB |
-| s08    | 1500  | 7     | 22 (12)      | Kepler-186 (goal)      | 712 ly                     | 257 × 37 ly     | 18.17 | 32 jumps                     | 2,223 KB |
-| s09    | 1381  | 7     | 18 (11)      | Boyajian's Star (goal) | 1,388 ly                   | 249 × 39 ly     | —     | 32 jumps                     | 1,793 KB |
-| s10    | 665   | 6     | 9 (8)        | Kepler-452 (goal)      | 1,753 ly                   | 204 × 34 ly     | —     | 28 jumps                     | 656 KB   |
+| s01    | 1500  | 13    | 30 (22)      | Kepler-186 (goal)      | 668 ly                     | 212 × 40 ly     | 18.06 | 26 jumps                     | 2,290 KB |
+| s02    | 1500  | 13    | 25 (18)      | Kepler-22 (goal)       | 798 ly                     | 323 × 36 ly     | 18.05 | 39 jumps                     | 1,970 KB |
+| s03    | 1500  | 17    | 38 (21)      | —                      | 965 ly                     | 316 × 38 ly     | 18.07 | 39 jumps                     | 1,805 KB |
+| s04    | 1500  | 16    | 33 (21)      | —                      | 965 ly                     | 328 × 35 ly     | 18.34 | 43 jumps                     | 1,936 KB |
+| s05    | 1500  | 16    | 22 (21)      | —                      | 1,354 ly                   | 355 × 37 ly     | 18.96 | 45 jumps                     | 1,710 KB |
+| s06    | 1500  | 15    | 27 (22)      | —                      | 966 ly                     | 347 × 35 ly     | 18.55 | 42 jumps                     | 1,883 KB |
+| s07    | 1500  | 15    | 40 (21)      | —                      | 1,029 ly                   | 327 × 38 ly     | 18.13 | 44 jumps                     | 1,795 KB |
+| s08    | 920   | 8     | 16 (12)      | Kepler-452 (goal)      | 1,688 ly                   | 232 × 38 ly     | —     | 34 jumps                     | 926 KB   |
+| s09    | 1500  | 13    | 25 (20)      | —                      | 1,130 ly                   | 290 × 39 ly     | 18.53 | 35 jumps                     | 1,875 KB |
+| s10    | 1177  | 6     | 14 (9)       | Boyajian's Star (goal) | 1,358 ly                   | 212 × 38 ly     | —     | 26 jumps                     | 1,568 KB |
 
 - **Columns:**
   - "KOIs" counts non-false-positive KOIs (CONFIRMED and CANDIDATE) and equals `planets.length`.
     The number in parentheses is the stars carrying them.
   - "G cut" is the Gaia G magnitude limit applied to ordinary stars when a tube held more than
     1,500 stars. Hosts, KOI stars and landmarks are always kept.
-- **Size:** all 10 bundles total 21.7 MB. The 30 ly neighbor lists are the bulk, averaging 57–130
-  neighbors per star.
+- **Size:** all 10 bundles total 20.5 MB, and 12,511 distinct stars appear across the sectors.
+  The 30 ly neighbor lists are the bulk of each file.
 - **Starts:** each start is the star nearest the tube's start end.
 - **Goals:** each goal is a landmark, host or KOI star within 25 ly of the far end if there is
   one; otherwise the nearest star.
 
 ### Landmarks
 
-| Landmark                      | Qualifies?                 | Why                                                                                                                                      |
-| ----------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Kepler-452                    | yes, s10 goal              | 1,807 ly (554 pc). Qualifies only because the band was widened to 600 pc (below).                                                        |
-| Kepler-186                    | yes, s08 goal              | 579 ly                                                                                                                                   |
-| Kepler-22                     | yes, s01 goal, also in s07 | 644 ly                                                                                                                                   |
-| Boyajian's Star (KIC 8462852) | yes, s09 goal              | 1,447 ly                                                                                                                                 |
-| Kepler-10                     | yes, in s04 (mid-corridor) | 607 ly. No corridor ending at it passed the overlap and path checks; s04's goal is Kepler-78, another host.                              |
-| Kepler-16                     | no                         | Too close: its parallax is above the 12 mas query limit (under ~83 pc). The Kepler field's cone is too narrow there for a 25–40 ly tube. |
-| Kepler-444                    | no                         | Too close, for the same reason (about 36 pc).                                                                                            |
-| Kepler-90                     | no                         | Too far: beyond the 1.6 mas query floor (about 625 pc).                                                                                  |
+| Landmark                      | Qualifies?             | Why                                                                                                                                                                            |
+| ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Kepler-452                    | yes, s08 goal          | 1,807 ly (554 pc). Qualifies only because the band was widened to 600 pc (deviation 4).                                                                                        |
+| Kepler-186                    | yes, s01 goal          | 579 ly (178 pc)                                                                                                                                                                |
+| Kepler-22                     | yes, s02 goal          | 644 ly (198 pc)                                                                                                                                                                |
+| Boyajian's Star (KIC 8462852) | yes, s10 goal          | 1,447 ly (443 pc)                                                                                                                                                              |
+| Kepler-10                     | in range but no sector | 607 ly (186 pc). Its few valid corridors either overlap the Kepler-186 and Kepler-22 sectors by more than 20% or fail the path band. A shorter first bake had it mid-corridor. |
+| Kepler-16                     | no                     | Too close: its parallax is above the 12 mas query limit (under ~83 pc), and the field's cone is too narrow there for a 25–40 ly tube.                                          |
+| Kepler-444                    | no                     | Too close, for the same reason (about 36 pc).                                                                                                                                  |
+| Kepler-90                     | no                     | Too far: beyond the 1.6 mas query floor (about 625 pc).                                                                                                                        |
+
+Near landmarks (about 180–200 pc) sit where the Kepler field's cone is only about 160 ly wide.
+Their targeted candidate tubes are oriented roughly along the line of sight (random tilt 0.4) and
+may be 200–340 ly long. After the landmark phase, other corridors get no landmark bonus for a
+landmark that already has a sector, which prevents duplicates.
 
 ### Real distance distribution
 
@@ -143,17 +151,15 @@ Sun.
 
 ### Search
 
-- **Sampling:** 20,000 random tubes (length 200–300 ly, radius 25–40 ly), each centered on a
-  random in-band star, plus 400 targeted tubes per landmark that end at that landmark. The search
-  is seeded, so it's reproducible.
-- **Acceptance:** 5,862 tubes passed geometry and star count. Rejections: axis leaves the Kepler
-  footprint (14,336), outside the distance band (1,420), tube leaves the query cone (94), too few
-  stars (8).
+- **Sampling:** 20,000 random tubes (length 280–360 ly after M2 tuning; radius 25–40 ly), each
+  centered on a random in-band star, plus 400 targeted tubes per landmark that end at that
+  landmark. The search is seeded, so it's reproducible.
+- **Acceptance:** 3,709 tubes passed geometry and star count. Rejections: axis leaves the Kepler
+  footprint (15,776), outside the distance band (1,985), tube leaves the query cone (72).
 - **Selection:** landmarks first (preferring a tube that ends at the landmark), then by score
-  (3 × hosts + 1 × KOI stars + 25 × landmarks). No two sectors may share more than 20% of the
-  smaller one's stars.
-- **Path lengths:** the spec's corridor lengths already give shortest paths of 25–40 jumps, so no
-  length tuning was needed.
+  (3 × hosts + 1 × KOI stars + 25 × landmarks not yet covered). No two sectors may share more
+  than 20% of the smaller one's stars.
+- **Path checks:** 14 tubes were checked to choose 10. One was too short and three too long.
 
 ### Sources (exact inputs; full list with sha256 in `raw/manifest.json`)
 
@@ -219,3 +225,138 @@ inspect` writes the column lists to `raw/schemas/`). Joining that table into the
     one cell. A corridor's axis must stay inside the footprint and the distance band, and the
     whole tube must fit inside the 10° query cone so no star is cut off.
 11. **Added `scipy`** (KD-tree for tube membership and neighbor lists) and `ruff`.
+
+## Milestone 2 — Game core (done 2026-09-29)
+
+Pure TypeScript in `packages/core`. `reduce(state, action, {sector, content}) => state`, with no
+DOM, no wall clock and no ambient randomness (ESLint enforces this, and a test checks the rule
+stays active). `make test` runs 29 Vitest tests:
+
+- **RNG:** determinism, seed separation and distribution.
+- **Determinism:** same seed gives the same systems and the same sim outcome for all three bots.
+- **Saves:** replaying the action log gives byte-identical state, for 3 seeds × 3 bots, and saves
+  from another content version are rejected.
+- **Invariants:** no negative resources without the run ending correctly, checked over 180 bot
+  runs after every action.
+- **Actions:** every legal action is accepted and illegal ones throw.
+- **Content:** content compiles and validates, and every event has a free option.
+- **Events:** every event is eligible somewhere, and every outcome of every option is reachable.
+- **Clocks:** `nextUp` ordering, stay-clock cancellation, and recurring-clock reset.
+
+The tests use a synthetic sector (`test/fixtures/sector.ts`) so they pass on a clean clone
+without baked data.
+
+### How it's built
+
+- **RNG (`rng.ts`):** xmur3 hash plus sfc32. There is no mutable RNG in state: every roll uses
+  `rngFor(runSeed, ...context)`, e.g. `('landing', turn, worldId)`. A save is
+  `{format, runSeed, sectorId, contentVersion, actions[]}`, and loading replays the actions.
+- **Content:** `content/balance.json` and `content/events/*.yaml` are validated with Ajv against
+  `content/schemas/*` and compiled by `scripts/build-content.ts` into a gitignored
+  `src/generated/content.json`. That runs automatically before typecheck, test and sim, and
+  stamps an FNV-1a content version. Core has no runtime YAML dependency.
+- **Systems (`generate/system.ts`):**
+  - Generated lazily on first visit and cached in state.
+  - Star class comes from Teff, falling back to BP−RP through an approximate dwarf color
+    sequence in `balance.json`. Luminosity is R²(T/5772)⁴.
+  - Confirmed planets are fixed slots with their real values.
+  - KOI candidates resolve per run to a planet, an eclipsing binary or an artifact, with odds
+    tilted by the real false-positive flags and `koi_score`. Resolving a candidate in play logs
+    a "Real data" line.
+  - 0–8 procedural planets, weighted by star class, with orbits spaced by ratio and kept clear
+    of real orbits. Around Kepler targets they're flagged non-transiting. Real planets keep
+    letter names; generated ones get Roman numerals, so it's always visible which is which.
+- **Clocks (`clocks.ts`):** a registry of timed things:
+  - Recycler (every 4 turns, +2 life support) and deep sensor sweep (every 3 turns, +1 data).
+  - Spectrum analysis (2 turns after each first visit to a star) and survey analysis (2 turns
+    after each survey).
+  - Stay-yield (cancelled if you leave).
+  - Signal decode (strange-signal event: pays data and reveals a supply cache ahead).
+  - Delayed reward (abandoned-probe event).
+  - `nextUp()` returns the next three completions, including a derived "front reaches this star
+    in N turns" entry.
+- **The front:** advances 3.5 ly per turn along the corridor's x axis, starting 30 ly behind the
+  start star. Each turn spent at a star behind it costs 30 hull.
+- **Events:** the 10 Phase 1 events listed in the spec, in YAML, with visible costs and shown odds.
+
+### Sim report (`make sim`: 500 runs per bot per sector, content fb7b110f, 161 s)
+
+| Bot      | Win rate | Median jumps (all / won) | Median turns | Payoff on % of turns | Mean / max gap between payoffs | Events per run |
+| -------- | -------- | ------------------------ | ------------ | -------------------- | ------------------------------ | -------------- |
+| random   | 0%       | 7 / —                    | 13           | 73%                  | 1.33 / 3                       | 3.1            |
+| greedy   | 48%      | 32 / 35                  | 54           | 78%                  | 1.27 / 3                       | 11.5           |
+| cautious | 49%      | 30 / 35                  | 67           | 86%                  | 1.16 / 3                       | 13.4           |
+
+- **random:** loses to the front 82% of the time and is stranded 16%.
+- **greedy:** loses to mining accidents 17%, flares 10%, stranding 8%, derelict salvage 6% and
+  hard landings 5%. It never repairs.
+- **cautious:** stranded 29%, life support 15%. It spends turns keeping reserves up and runs dry
+  when the front forces it on.
+
+Win rate by sector:
+
+| Bot      | s01 | s02 | s03 | s04 | s05 | s06 | s07 | s08 | s09 | s10 |
+| -------- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| greedy   | 78% | 47% | 30% | 45% | 23% | 36% | 28% | 62% | 48% | 79% |
+| cautious | 71% | 47% | 37% | 43% | 24% | 51% | 36% | 48% | 57% | 77% |
+
+Sector difficulty tracks shortest-path length: s01 and s10 are 26 jumps, s05 is 45.
+
+Resource curves (mean fuel / life support / hull of runs still going): greedy holds fuel near
+21–23 while its hull wears from 100 to about 27 by turn 70. Cautious holds hull near 60 and
+fuel near 20 through turn 90. Full curves are in `data/sim/report.md`.
+
+Against the targets:
+
+- Greedy wins 30–60%: **met, 48%.**
+- Random rarely wins: **met, 0%.**
+- A clock payoff on most turns: **met,** 78–86% of turns, never more than 3 turns apart.
+- Median run 35–55 jumps: **met for winning runs (35); the all-runs median is 30–32** because
+  losses end early. Pushing it higher would need longer corridors than the pipeline's 25–45
+  path band allows, or detour-heavy play.
+
+### Tuned balance values (content/balance.json)
+
+- **Jump fuel:** 1 + 0.03·d². So 6 ly costs 2.1, 8 ly costs 2.9 and 12 ly costs 5.3. Life
+  support is 0.5 per jump.
+- **Life support:** 0.5 per turn, 1 per landing.
+- **Start / max:** fuel 24 / 40, life support 24 / 40, hull 100 / 100, materials 4 / 30.
+- **Front:** 3.5 ly per turn, starts 30 ly behind, 30 hull per turn behind it.
+- **Mining:** 6 fuel, 5 materials, 5 life support per action. 20% accident chance for 6–16 hull.
+- **Fuel pools:** gas giants 6–16, ice giants 5–12, ice worlds 3–8. Procedural radii skew toward
+  small worlds (exponent 2.2).
+- **Stay:** yield grows +50% per consecutive turn. Hazard is 10% + 10% per turn. A deep-survey
+  clock pays after 3 consecutive turns.
+- **Events:** 35% chance on arrival, 25% on landing, 20% on stay.
+
+### Deviations and decisions
+
+1. **Corridor length retuned in the pipeline** from 200–300 ly to 280–360 ly (landmark tubes
+   200–340 ly), as the spec allows ("tune corridor length"). Shortest paths are now 26–45 jumps
+   and still pass the 25–45 validation band. This moved the sim's winning-run median from 32 to
+   35 jumps.
+2. **Quadratic jump fuel** (`fuelPerLySquared`). With a linear cost the best play is always the
+   longest jump, so runs have fewer stops and fewer systems seen. Now 6–8 ly hops are the
+   efficient choice and 12 ly jumps are an emergency move. This serves both design goals.
+3. **Added a `repair` action** (materials → hull, takes a turn). Materials had no use otherwise.
+4. **Life support drains 0.5 per turn**, in addition to per jump and per landing, so time
+   spent (stay, mining, repair) has a cost.
+5. **Extra clocks:** recycler, sensor sweep, survey analysis and spectrum analysis, beyond the
+   spec's four (front, stay-yield, signal decode, delayed reward). They are what gets "a clock
+   payoff on most turns". Spectrum analysis ties the payoff rhythm to exploring new stars. The
+   front is a derived ticker entry rather than a stored clock.
+6. **Mining is illegal when it would yield nothing** because the holds are full. Found in
+   tuning: a bot could loop on it forever.
+7. **Loss causes** are `hull` (with the damage source as detail: front, mining, flare, or an
+   event id), `lifeSupport`, and `stranded`. Stranded means no affordable jump, no reachable fuel
+   here, and no fuel clock pending.
+8. **Bots navigate by true hops-to-goal** (BFS over the whole sector's jump graph), which is more
+   than a player's sensors reveal. A straight-line heuristic trapped them in local dead ends. So
+   "greedy" means the cheapest-fuel jump that stays on a shortest path, and tops up fuel below
+   60%. "Cautious" surveys everything, keeps reserves above 60%, repairs below 60 hull, avoids
+   hazardous stars, and runs when the front is within 20 ly.
+9. **The reducer clones state with a JSON round-trip,** which also guarantees state stays plain
+   JSON. A 15,000-run sim takes about 160 s.
+10. **Code style:** TypeScript imports use `.ts` extensions and `erasableSyntaxOnly`, so Node 22
+    runs the sim and content scripts directly with no extra tooling. The base lib is raised to
+    ES2023.
