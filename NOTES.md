@@ -66,3 +66,13 @@ skipped (the network gate).
   `jump.maxRangeLy` so the pipeline and game share one source. M2 extends the schema.
 - **Extra targets.** `make build` and `make lint` were added alongside the spec's targets.
 - **Git.** The repo is `git init`ed but has no commits yet.
+
+### Local preview (added after M0 review)
+
+- The Vite dev server runs as the user unit `transit-dev.service` on `127.0.0.1:8460`. It is
+  exposed tailnet-only via `tailscale serve --https=8459` and survives reboots.
+- Glance has a "Transit (dev)" monitor tile and a Transit restart button. The button was tested
+  end to end: a POST restarted the unit and the tailnet URL returned 200 afterwards.
+- `vite.config.ts` reads `TRANSIT_DEV_HOST` / `TRANSIT_HMR_CLIENT_PORT` so the tailnet hostname
+  stays out of the public repo. `vite.config.ts` is now typechecked through its own
+  `tsconfig.node.json` (Node types), so browser code can't pick up Node APIs.

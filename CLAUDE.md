@@ -58,3 +58,18 @@ art, audio, cinematics, 3D, and deployment. Leave clean seams for these.
   pale blues. No art assets or audio.
 - **Units:** game data uses light-years (1 pc = 3.2616 ly), and distances use only Gaia stars with
   `parallax_over_error >= 10`.
+
+## Local preview (tailnet + Glance)
+
+The user wants **everything built to be viewable on their tailnet and listed on their Glance
+dashboard.** When a milestone adds something worth looking at (a new page, a sector viewer,
+reports), make it reachable the same way and add or refresh its Glance entry.
+
+- `transit-dev.service` (systemd user unit, outside the repo) runs the Vite dev server on
+  `127.0.0.1:8460` with hot reload. `tailscale serve` exposes it tailnet-only on HTTPS port `8459`.
+- The unit sets `TRANSIT_DEV_HOST` and `TRANSIT_HMR_CLIENT_PORT`, which `packages/web/vite.config.ts`
+  reads so Vite accepts the proxied hostname. Don't hard-code the tailnet hostname in this public
+  repo.
+- Glance config is `~/.config/glance/glance.yml` (the "Transit (dev)" tile under Creative & media,
+  plus a Restart button). The restart allowlist is in `~/.local/share/glance/restarter.py`. Back
+  up either file before editing it (`*.bak-<date>-<topic>`). Glance hot-reloads its config.
